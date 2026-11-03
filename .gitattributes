@@ -1,0 +1,28 @@
+# Normalizare automată a sfârșitului de linie pentru text
+* text=auto
+
+# Cod și documentație
+*.cs       text diff=csharp
+*.asmdef   text
+*.json     text
+*.md       text
+
+# Fișiere YAML Unity: text, dar nu se îmbină automat linie cu linie
+*.unity        text merge=unityyamlmerge eol=lf
+*.prefab       text merge=unityyamlmerge eol=lf
+*.asset        text merge=unityyamlmerge eol=lf
+*.meta         text merge=unityyamlmerge eol=lf
+*.mat          text merge=unityyamlmerge eol=lf
+*.controller   text merge=unityyamlmerge eol=lf
+*.anim         text merge=unityyamlmerge eol=lf
+*.inputactions text
+
+# Binare
+*.png  binary
+*.jpg  binary
+*.psd  binary
+*.fbx  binary
+*.wav  binary
+*.mp3  binary
+*.ttf  binary
+*.dll  binary

@@ -1,0 +1,14 @@
+{
+    "name": "Travee.TicTacToe.Core",
+    "rootNamespace": "Travee.TicTacToe.Core",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
