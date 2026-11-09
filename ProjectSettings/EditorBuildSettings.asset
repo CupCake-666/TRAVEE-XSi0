@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/XSi0_3D.unity
+    guid: 6c29433c4006d7d4181e3216903a74ad
+  - enabled: 1
     path: Assets/Scenes/XSi0.unity
     guid: 79fcf2c38d2e347418db3761efa2d2f7
   - enabled: 0

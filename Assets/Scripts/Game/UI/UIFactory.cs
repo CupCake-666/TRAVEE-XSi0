@@ -18,6 +18,7 @@ namespace Travee.TicTacToe.UI
         public static readonly Color X = new Color(0.16f, 0.42f, 0.85f);
         public static readonly Color O = new Color(0.90f, 0.40f, 0.25f);
         public static readonly Color Overlay = new Color(0.93f, 0.95f, 0.97f, 0.92f);
+        public static readonly Color Card = new Color(0.97f, 0.98f, 0.99f, 0.94f);
 
         public static Color ForMark(Core.Mark mark) => mark == Core.Mark.X ? X : O;
     }

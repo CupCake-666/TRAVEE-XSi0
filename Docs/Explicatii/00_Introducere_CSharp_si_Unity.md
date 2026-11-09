@@ -12,8 +12,14 @@ Ordinea recomandată de citire:
 | `02_Search.md` | `Search.cs` – minimax și expectimax |
 | `03_Strategii_AI.md` | `IAIStrategy.cs` + cele 4 niveluri |
 | `04_Bootstrap_si_GameController.md` | pornirea jocului și fluxul unui meci |
-| `05_UI.md` | `UIFactory.cs`, `BoardView.cs`, `Screens.cs`, `ICellInputSource.cs` |
-| `06_Logger_Editor_Teste.md` | `SessionLogger.cs`, `SceneSetup.cs`, `AITests.cs` |
+| `05_UI.md` | interfața: meniul, moneda, textele din joc, ecranul de rezultat |
+| `06_Logger_si_Teste.md` | `SessionLogger.cs`, `AITests.cs`, fișierele `.asmdef` |
+| `07_Scena_3D.md` | camera de joc, tabla 3D, input-ul cu mouse-ul, privitul în jur |
+| `08_Personajul_AI.md` | personajul animat: mers, IK, salut la privire, reacții |
+| `09_Editor_si_Importul.md` | meniul TRAVEE și configurarea automată a personajului Mixamo |
+
+Jocul rulează acum în **3D** (scena `XSi0_3D`). Varianta 2D de la început mai există în cod (scena `XSi0`),
+dar explicațiile de aici se concentrează pe 3D.
 
 ---
 
@@ -25,7 +31,7 @@ Ordinea recomandată de citire:
 | `UActorComponent` | `Component` / `MonoBehaviour` | **Tot comportamentul** se pune în componente atașate pe GameObject. |
 | clasa ta derivată din `AActor` | clasa ta derivată din `MonoBehaviour` | scriptul tău e o componentă. |
 | `BeginPlay()` | `Awake()` / `Start()` | `Awake` = imediat ce obiectul e creat; `Start` = înainte de primul frame. |
-| `Tick(DeltaTime)` | `Update()` + `Time.deltaTime` | nu am folosit `Update` deloc – am folosit corutine (vezi mai jos). |
+| `Tick(DeltaTime)` | `Update()` + `Time.deltaTime` | `Update` e folosit doar unde trebuie verificat ceva în fiecare frame (mouse-ul pe tablă, privitul în jur); fluxul jocului e făcut cu corutine (vezi mai jos). |
 | `UPROPERTY(EditAnywhere)` | `[SerializeField]` sau câmp `public` | apare în Inspector (echivalentul Details panel). |
 | `UFUNCTION(CallInEditor)` / meniuri editor | `[MenuItem("...")]` | adaugă o comandă în meniul editorului. |
 | Level / Map | Scene (`.unity`) | |
@@ -201,7 +207,7 @@ Orice clasă `: MonoBehaviour` e o componentă. **Nu o creezi cu `new`**, ci cu:
 var c = gameObject.AddComponent<GameController>();
 ```
 Unity apelează automat anumite metode după nume (fără `override`!): `Awake()`, `Start()`, `Update()`,
-`OnEnable()` etc. Noi folosim doar `Awake()`.
+`OnEnable()`, `OnAnimatorIK()` etc. Noi folosim `Awake()`, `Start()`, `Update()` și `OnAnimatorIK()`.
 
 În interiorul unui MonoBehaviour ai acces direct la:
 - `gameObject` – obiectul pe care stă componenta;
@@ -270,3 +276,54 @@ StopAllCoroutines();              // oprește toate corutinele acestei component
 Obiectele Unity (`GameObject`, componente, `Font`, `Sprite`) au o comparație cu `null` „specială”
 (un obiect distrus *pare* null). De aceea pentru ele folosesc `if (x == null)` și **nu** `x ??= ...`
 sau `x?.`. Pentru clasele noastre C# obișnuite (ex. `SessionLogger`) `?.` e în regulă.
+
+---
+
+## 4. Concepte 3D folosite în proiect
+
+### 4.1 Poziții, rotații, unități
+- **Unitatea din Unity = 1 metru** (în Unreal, 1 unitate = 1 cm). Toate distanțele din cod sunt în metri.
+- **Axe:** X = dreapta, Y = sus, **Z = înainte**. Unity e „left-handed” (în Unreal, X = înainte, Z = sus).
+- `Vector3` = un punct sau o direcție (x, y, z). `Vector3.up` = (0, 1, 0), `Vector3.left` = (-1, 0, 0).
+- `Quaternion` = o rotație (ca `FQuat`). Nu o construiești de mână, ci cu:
+  - `Quaternion.Euler(x, y, z)`: din unghiuri în grade (ca `FRotator`);
+  - `Quaternion.LookRotation(direcție)`: rotația care „se uită” în direcția dată;
+  - `Quaternion.Slerp(a, b, t)`: interpolare între două rotații (pentru întoarceri line).
+- `transform.position` = poziția în lume; `transform.localPosition` = poziția față de părinte.
+  `transform.up` = direcția „sus” a obiectului **după** rotirea lui.
+- `transform.SetPositionAndRotation(p, r)` = le setează pe amândouă deodată.
+- `Vector3.MoveTowards(a, b, pas)` = mută punctul `a` spre `b` cu cel mult `pas` (folosit la mers).
+- `(a - b).sqrMagnitude` = distanța la pătrat. E mai rapidă decât `.magnitude` (fără radical),
+  de aceea comparăm cu praguri la pătrat (ex. `< 0.0004f` = mai aproape de 2 cm).
+
+### 4.2 Primitive, mesh-uri, materiale
+- `GameObject.CreatePrimitive(PrimitiveType.Cube)` = un cub gata făcut (MeshFilter + MeshRenderer + BoxCollider).
+  Echivalentul unui `StaticMeshComponent` cu Cube din Unreal.
+- **Mesh** = geometria (vârfuri + triunghiuri). Se poate genera din cod (așa facem inelul pentru 0).
+- **Material** = cum arată suprafața (culoare, luciu, transparență). În URP folosim shader-ul „Lit”.
+  `material.color` = culoarea de bază; al 4-lea canal (alpha) = opacitatea, dacă materialul e transparent.
+- `sharedMaterial` vs `material`: `sharedMaterial` folosește materialul dat direct; `material` creează automat
+  o copie per obiect. Noi folosim `sharedMaterial` și facem copiile explicit, când avem nevoie.
+- **Render queue** = ordinea în care se desenează obiectele. Opace = 2000, transparente = 3000+.
+  Cele transparente se desenează după cele opace, de aceea personajul se vede prin tabla transparentă.
+
+### 4.3 Fizică pentru selecție (raycast)
+- **Collider** = forma „invizibilă” folosită de fizică (ca `CollisionComponent`).
+- `Physics.Raycast(rază, out hit, distanță)` = trimite o rază și spune ce collider a atins primul
+  (ca `LineTraceSingleByChannel`). `camera.ScreenPointToRay(poziție mouse)` = raza din cameră prin cursor.
+- În VR, același collider va fi atins de mâna pacientului în loc de rază.
+
+### 4.4 Animații: Animator, Humanoid, IK
+- **Animator** (componentă) = rulează animațiile unui model. E echivalentul `SkeletalMeshComponent` + AnimBP.
+- **Animator Controller** (asset `.controller`) = mașina de stări (ca AnimGraph-ul din Animation Blueprint).
+  Fiecare stare are un clip. Noi îl generăm din cod și trecem între stări cu `CrossFadeInFixedTime`
+  (o tranziție lină, în secunde).
+- **Rig Humanoid + Avatar** = Unity știe care os e „capul”, „mâna dreaptă” etc. Așa, o animație făcută pentru
+  un schelet merge pe altul (ca IK Retargeter-ul din Unreal).
+- **Animation clip** = o animație (ca `AnimSequence`). Un fișier FBX poate conține mai multe („take”-uri).
+- **Root motion** = animația mută singură personajul. Noi o oprim (`applyRootMotion = false`) și mișcăm
+  personajul din cod; animațiile sunt „In Place”.
+- **IK (Inverse Kinematics)** = codul spune „pune mâna dreaptă aici” și Unity îndoaie brațul ca să ajungă
+  (ca nodul Two Bone IK). Se face în metoda `OnAnimatorIK`, apelată de Unity doar dacă stratul Animator-ului
+  are bifat **IK Pass**. `SetLookAtPosition` face același lucru pentru cap și ochi.
+- **Pondere (weight)** 0..1 = cât de mult se aplică IK-ul peste animație (0 = deloc, 1 = complet).

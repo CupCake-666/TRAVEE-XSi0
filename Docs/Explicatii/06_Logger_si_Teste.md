@@ -1,4 +1,4 @@
-# 06 – SessionLogger.cs, SceneSetup.cs, AITests.cs și fișierele .asmdef
+# 06 – SessionLogger.cs, AITests.cs și fișierele .asmdef
 
 ---
 
@@ -171,48 +171,7 @@ Datorită acestei funcții, fiecare sesiune nouă **adaugă** la aceleași fiși
 
 ---
 
-## SceneSetup.cs – meniul „TRAVEE” din editor
-
-```csharp
-using System.Linq;                     // ← LINQ: Where, ToList (operații pe colecții)
-using UnityEditor;                     // ← API-ul editorului (există DOAR în editor, nu în jocul compilat)
-using UnityEditor.SceneManagement;     // ← EditorSceneManager
-using UnityEngine;
-
-public static class SceneSetup
-{
-    const string ScenePath = "Assets/Scenes/XSi0.unity";
-
-    [MenuItem("TRAVEE/Creează scena X și 0")]   // ← apare în bara de meniu a editorului
-    static void CreateScene()
-    {
-        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-        // ← dialogul „Vrei să salvezi scena curentă?”. Dacă apeși Cancel → oprim.
-
-        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-        // ← scenă nouă, complet goală, care o înlocuiește pe cea deschisă
-
-        var cam = new GameObject("Main Camera").AddComponent<Camera>();
-        cam.tag = "MainCamera";
-        cam.orthographic = true;
-        cam.transform.position = new Vector3(0, 0, -10);   // ← camera puțin în spate (convenția Unity 2D)
-
-        new GameObject("XSi0").AddComponent<TicTacToeBootstrap>();   // ← obiectul cu scriptul de pornire
-
-        EditorSceneManager.SaveScene(scene, ScenePath);    // ← salvăm fișierul .unity
-
-        var scenes = EditorBuildSettings.scenes.Where(s => s.path != ScenePath).ToList();
-        // ← lista de scene din Build Settings, fără scena noastră (dacă exista deja). Where = filtrare cu lambda.
-        scenes.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
-        // ← o punem PRIMA (indexul 0 = scena care pornește în build); true = activă
-        EditorBuildSettings.scenes = scenes.ToArray();
-
-        Debug.Log($"[TRAVEE] Scena a fost creată: {ScenePath}. Apasă Play.");
-    }
-}
-```
-Fișierul e în assembly-ul **Editor** (vezi `.asmdef` mai jos), deci nu ajunge niciodată în aplicația finală.
-Fără această separare, `using UnityEditor` ar da eroare la build.
+Meniul TRAVEE din editor (`SceneSetup.cs`) e explicat în `09_Editor_si_Importul.md`.
 
 ---
 
@@ -385,7 +344,7 @@ Echivalentul modulelor din Unreal (`.Build.cs`). Sunt fișiere JSON. Câmpurile 
 |---|---|---|
 | `Scripts/Core/Travee.TicTacToe.Core.asmdef` | – | `noEngineReferences: true` |
 | `Scripts/Game/Travee.TicTacToe.asmdef` | Core, `Unity.InputSystem`, `UnityEngine.UI` | |
-| `Scripts/Editor/Travee.TicTacToe.Editor.asmdef` | Game | `includePlatforms: ["Editor"]` → nu intră în build |
+| `Scripts/Editor/Travee.TicTacToe.Editor.asmdef` | Game, `Unity.RenderPipelines.Core.Runtime`, `Unity.RenderPipelines.Universal.Runtime` | `includePlatforms: ["Editor"]` → nu intră în build; URP e necesar ca să schimbe rendererul |
 | `Tests/EditMode/Travee.TicTacToe.Tests.asmdef` | Core, TestRunner | `overrideReferences` + `nunit.framework.dll`, `defineConstraints: ["UNITY_INCLUDE_TESTS"]`, `autoReferenced: false` |
 
 Fiecare folder cu `.asmdef` (și subfolderele lui) devine un DLL separat. Unity recompilează doar DLL-urile
@@ -393,19 +352,20 @@ afectate de o modificare, deci și compilarea e mai rapidă.
 
 ---
 
-## Rezumat: drumul unui click
+## Rezumat: drumul unui click (3D)
 
 ```
-Click pe căsuța 4
-  → Button.onClick                       (UIFactory.Button a legat lambda-ul)
-  → BoardView.OnCellClicked(4)           (doar dacă InputEnabled)
+Click pe o căsuță a tablei 3D
+  → Board3DView.Update(): o rază din cameră prin cursor (Physics.Raycast)
+  → atinge collider-ul căsuței 4 (componenta BoardCell cu Index = 4)
   → CellSelected?.Invoke(4)              (evenimentul interfeței ICellInputSource)
   → GameController.OnCellSelected(4)     (verifică: e rândul pacientului? căsuța e liberă?)
   → selectedCell = 4                     (corutina MatchRoutine iese din bucla de așteptare)
   → reactionMs = acum − turnStart
   → Apply(4): Match.Play → Board.Place → MoveRecord
-              BoardView.SetMark (animație Pop)
+              Board3DView.SetMark (piesa 3D cade pe tablă)
               SessionLogger.LogMove (buffer)
-  → rândul AI-ului: WaitForSeconds(0.8) → ai.ChooseMove(copie) → Apply(...)
+  → rândul AI-ului: ai.ChooseMove(copie) → personajul se gândește, vine la tablă,
+    își duce mâna la căsuță și piesa apare (OpponentCharacter.PlacePiece → Apply(...))
   → la final: SessionLogger.EndGame → scrie în games.csv și moves.csv
 ```

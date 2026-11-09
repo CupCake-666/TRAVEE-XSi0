@@ -10,7 +10,7 @@ namespace Travee.TicTacToe.UI
     /// Tabla 2D. Este și sursa de input pentru mouse/touch (prin butoanele uGUI).
     /// În VR se va adăuga o altă implementare de <see cref="ICellInputSource"/> (atingerea cu mâna).
     /// </summary>
-    public sealed class BoardView : MonoBehaviour, ICellInputSource
+    public sealed class BoardView : MonoBehaviour, IBoardView, ICellInputSource
     {
         readonly Image[] cellImages = new Image[Board.CellCount];
         readonly Text[] cellTexts = new Text[Board.CellCount];

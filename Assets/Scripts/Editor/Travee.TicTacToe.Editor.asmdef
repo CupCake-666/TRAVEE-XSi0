@@ -2,7 +2,9 @@
     "name": "Travee.TicTacToe.Editor",
     "rootNamespace": "Travee.TicTacToe.Editor",
     "references": [
-        "Travee.TicTacToe"
+        "Travee.TicTacToe",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"

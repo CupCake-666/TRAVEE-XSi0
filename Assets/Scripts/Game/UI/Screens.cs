@@ -31,32 +31,41 @@ namespace Travee.TicTacToe.UI
         public event Action<DifficultyLevel> LevelChosen;
         public event Action SideToggleRequested;
 
-        public static MenuScreen Create(Transform parent)
+        /// <param name="overScene">3D: meniul e un card în stânga, iar scena (cu personajul) se vede în dreapta.</param>
+        public static MenuScreen Create(Transform parent, bool overScene = false)
         {
-            var root = UIFactory.Panel("MenuScreen", parent, Theme.Background);
+            var root = UIFactory.Panel("MenuScreen", parent, overScene ? Color.clear : Theme.Background);
             root.rectTransform.Stretch();
             var screen = root.gameObject.AddComponent<MenuScreen>();
-            screen.Build();
+
+            Transform container = root.transform;
+            if (overScene)
+            {
+                var card = UIFactory.Panel("Card", root.transform, Theme.Card);
+                card.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(470, 0), new Vector2(860, 1020));
+                container = card.transform;
+            }
+            screen.Build(container);
             return screen;
         }
 
-        void Build()
+        void Build(Transform container)
         {
-            UIFactory.Label("Title", transform, "X și 0", 110, Theme.Text, FontStyle.Bold)
+            UIFactory.Label("Title", container, "X și 0", 110, Theme.Text, FontStyle.Bold)
                 .rectTransform.Centered(new Vector2(0, 400), new Vector2(1200, 140));
-            UIFactory.Label("Subtitle", transform, "Alege nivelul de dificultate", 44, Theme.TextMuted)
+            UIFactory.Label("Subtitle", container, "Alege nivelul de dificultate", 44, Theme.TextMuted)
                 .rectTransform.Centered(new Vector2(0, 300), new Vector2(1200, 70));
 
             var levels = (DifficultyLevel[])Enum.GetValues(typeof(DifficultyLevel));
             for (int i = 0; i < levels.Length; i++)
             {
                 var level = levels[i];
-                var button = UIFactory.Button($"Level{(int)level}", transform, Texts.LevelName(level), 46,
+                var button = UIFactory.Button($"Level{(int)level}", container, Texts.LevelName(level), 46,
                     Theme.Button, Theme.ButtonText, () => LevelChosen?.Invoke(level));
                 ((RectTransform)button.transform).Centered(new Vector2(0, 170 - i * 135), new Vector2(760, 110));
             }
 
-            var sideButton = UIFactory.Button("AffectedSide", transform, "", 36, Theme.ButtonSecondary, Theme.Text,
+            var sideButton = UIFactory.Button("AffectedSide", container, "", 36, Theme.ButtonSecondary, Theme.Text,
                 () => SideToggleRequested?.Invoke());
             ((RectTransform)sideButton.transform).Centered(new Vector2(0, -420), new Vector2(620, 80));
             sideLabel = UIFactory.LabelOf(sideButton);
@@ -156,27 +165,43 @@ namespace Travee.TicTacToe.UI
 
         public event Action MenuRequested;
 
-        public static GameScreen Create(Transform parent)
+        /// <param name="withBoard">false în 3D: tabla e pe masă, ecranul are doar textele și e transparent.</param>
+        public static GameScreen Create(Transform parent, bool withBoard = true)
         {
-            var root = UIFactory.Panel("GameScreen", parent, Theme.Background);
+            var root = UIFactory.Panel("GameScreen", parent, withBoard ? Theme.Background : Color.clear);
             root.rectTransform.Stretch();
+            root.raycastTarget = withBoard; // în 3D click-urile trebuie să treacă spre tabla de pe masă
             var screen = root.gameObject.AddComponent<GameScreen>();
-            screen.Build();
+            screen.Build(withBoard);
             return screen;
         }
 
-        void Build()
+        void Build(bool withBoard)
         {
             header = UIFactory.Label("Header", transform, "", 48, Theme.Text, FontStyle.Bold);
-            header.rectTransform.Centered(new Vector2(0, 470), new Vector2(1200, 70));
-
             playerInfo = UIFactory.Label("PlayerInfo", transform, "", 38, Theme.TextMuted);
-            playerInfo.rectTransform.Centered(new Vector2(0, 405), new Vector2(1200, 60));
-
-            Board = BoardView.Create(transform, new Vector2(0, -20), 700);
-
             status = UIFactory.Label("Status", transform, "", 46, Theme.Text, FontStyle.Bold);
-            status.rectTransform.Centered(new Vector2(0, -440), new Vector2(1400, 70));
+
+            if (withBoard)
+            {
+                header.rectTransform.Centered(new Vector2(0, 470), new Vector2(1200, 70));
+                playerInfo.rectTransform.Centered(new Vector2(0, 405), new Vector2(1200, 60));
+                status.rectTransform.Centered(new Vector2(0, -440), new Vector2(1400, 70));
+                Board = BoardView.Create(transform, new Vector2(0, -20), 700);
+            }
+            else
+            {
+                // 3D: textele stau în dreapta-sus, ca să nu acopere personajul sau tabla.
+                var corner = new Vector2(1, 1);
+                foreach (var label in new[] { header, playerInfo, status }) label.alignment = TextAnchor.MiddleRight;
+                header.rectTransform.Place(corner, new Vector2(-380, -60), new Vector2(700, 70));
+                playerInfo.rectTransform.Place(corner, new Vector2(-380, -120), new Vector2(700, 60));
+                status.rectTransform.Place(corner, new Vector2(-380, -190), new Vector2(700, 70));
+
+                var hint = UIFactory.Label("LookHint", transform, "Click dreapta + mouse: privește în jur   •   Space: înainte",
+                    28, Theme.TextMuted);
+                hint.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(1400, 50));
+            }
 
             var menu = UIFactory.Button("Menu", transform, "Meniu", 34, Theme.ButtonSecondary, Theme.Text,
                 () => MenuRequested?.Invoke());
@@ -188,7 +213,6 @@ namespace Travee.TicTacToe.UI
             header.text = Texts.LevelName(level);
             playerInfo.text = "";
             status.text = "";
-            Board.ResetBoard();
         }
 
         public void SetPlayers(Mark patientMark)
@@ -209,30 +233,43 @@ namespace Travee.TicTacToe.UI
         public event Action PlayAgainRequested;
         public event Action MenuRequested;
 
-        public static ResultScreen Create(Transform parent)
+        /// <param name="overScene">3D: rezultatul e un card jos, ca personajul (care aplaudă) să rămână vizibil.</param>
+        public static ResultScreen Create(Transform parent, bool overScene = false)
         {
-            var root = UIFactory.Panel("ResultScreen", parent, Theme.Overlay);
+            // Rădăcina rămâne țintă de raycast (chiar transparentă), ca să blocheze click-urile spre tablă.
+            var root = UIFactory.Panel("ResultScreen", parent, overScene ? Color.clear : Theme.Overlay);
             root.rectTransform.Stretch();
             var screen = root.gameObject.AddComponent<ResultScreen>();
-            screen.Build();
+            if (overScene)
+            {
+                var card = UIFactory.Panel("Card", root.transform, Theme.Card);
+                card.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0, 260), new Vector2(1500, 440));
+                screen.Build(card.transform, compact: true);
+            }
+            else
+            {
+                screen.Build(root.transform, compact: false);
+            }
             return screen;
         }
 
-        void Build()
+        void Build(Transform container, bool compact)
         {
-            title = UIFactory.Label("Title", transform, "", 90, Theme.Text, FontStyle.Bold);
-            title.rectTransform.Centered(new Vector2(0, 200), new Vector2(1600, 130));
+            title = UIFactory.Label("Title", container, "", compact ? 72 : 90, Theme.Text, FontStyle.Bold);
+            title.rectTransform.Centered(new Vector2(0, compact ? 140 : 200), new Vector2(1400, 110));
 
-            message = UIFactory.Label("Message", transform, "", 44, Theme.TextMuted);
-            message.rectTransform.Centered(new Vector2(0, 70), new Vector2(1400, 130));
+            message = UIFactory.Label("Message", container, "", compact ? 38 : 44, Theme.TextMuted);
+            message.rectTransform.Centered(new Vector2(0, compact ? 50 : 70), new Vector2(1300, 110));
 
-            var again = UIFactory.Button("PlayAgain", transform, "Joacă din nou", 46, Theme.Button, Theme.ButtonText,
+            var again = UIFactory.Button("PlayAgain", container, "Joacă din nou", 46, Theme.Button, Theme.ButtonText,
                 () => PlayAgainRequested?.Invoke());
-            ((RectTransform)again.transform).Centered(new Vector2(0, -120), new Vector2(640, 110));
+            ((RectTransform)again.transform).Centered(compact ? new Vector2(-330, -120) : new Vector2(0, -120),
+                new Vector2(620, 110));
 
-            var menu = UIFactory.Button("Menu", transform, "Alege alt nivel", 40, Theme.ButtonSecondary, Theme.Text,
+            var menu = UIFactory.Button("Menu", container, "Alege alt nivel", 40, Theme.ButtonSecondary, Theme.Text,
                 () => MenuRequested?.Invoke());
-            ((RectTransform)menu.transform).Centered(new Vector2(0, -260), new Vector2(640, 100));
+            ((RectTransform)menu.transform).Centered(compact ? new Vector2(330, -120) : new Vector2(0, -260),
+                new Vector2(620, compact ? 110 : 100));
         }
 
         public void Show(string titleText, string messageText, Color titleColor)

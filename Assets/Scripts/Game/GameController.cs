@@ -9,7 +9,8 @@ namespace Travee.TicTacToe
 {
     /// <summary>
     /// Fluxul jocului: Meniu → Coin flip → Meci (pacient vs AI) → Rezultat.
-    /// Nu știe nimic despre mouse sau VR: primește selecțiile prin <see cref="ICellInputSource"/>.
+    /// Nu știe nimic despre mouse, VR, 2D sau 3D: primește selecțiile prin <see cref="ICellInputSource"/>,
+    /// afișează tabla prin <see cref="IBoardView"/> și „joacă” personajul AI prin <see cref="IOpponentPresenter"/>.
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
@@ -25,6 +26,8 @@ namespace Travee.TicTacToe
         CoinFlipScreen coinFlip;
         GameScreen game;
         ResultScreen result;
+        IBoardView board;
+        IOpponentPresenter opponent;
 
         Match match;
         DifficultyLevel currentLevel;
@@ -32,7 +35,8 @@ namespace Travee.TicTacToe
         int selectedCell = -1;
 
         public void Init(DifficultySettings settings, AffectedSide affectedSide, float aiMoveDelay, bool logData,
-            int randomSeed, MenuScreen menu, CoinFlipScreen coinFlip, GameScreen game, ResultScreen result)
+            int randomSeed, MenuScreen menu, CoinFlipScreen coinFlip, GameScreen game, ResultScreen result,
+            IBoardView board, IOpponentPresenter opponent = null)
         {
             this.settings = settings;
             this.affectedSide = affectedSide;
@@ -44,6 +48,9 @@ namespace Travee.TicTacToe
             this.coinFlip = coinFlip;
             this.game = game;
             this.result = result;
+            this.board = board;
+            this.opponent = opponent ?? new NoOpponent();
+            this.opponent.OnAffectedSideChanged(affectedSide);
 
             menu.LevelChosen += StartGame;
             menu.SideToggleRequested += ToggleAffectedSide;
@@ -51,7 +58,6 @@ namespace Travee.TicTacToe
             result.PlayAgainRequested += () => StartGame(currentLevel);
             result.MenuRequested += ShowMenu;
 
-            AddInputSource(game.Board);
             ShowMenu();
         }
 
@@ -78,12 +84,14 @@ namespace Travee.TicTacToe
             coinFlip.gameObject.SetActive(false);
             game.gameObject.SetActive(false);
             result.gameObject.SetActive(false);
+            opponent.OnMenu();
         }
 
         void ToggleAffectedSide()
         {
             affectedSide = affectedSide == AffectedSide.Left ? AffectedSide.Right : AffectedSide.Left;
             menu.SetAffectedSide(affectedSide);
+            opponent.OnAffectedSideChanged(affectedSide);
         }
 
         void StartGame(DifficultyLevel level)
@@ -99,6 +107,8 @@ namespace Travee.TicTacToe
             result.gameObject.SetActive(false);
             game.gameObject.SetActive(true);
             game.Setup(level);
+            board.ResetBoard();
+            opponent.OnMenu();
 
             bool patientStarts = CoinFlip.PatientStarts(level, settings, rng);
             coinFlip.gameObject.SetActive(true);
@@ -110,6 +120,7 @@ namespace Travee.TicTacToe
             ai.OnNewGame();
             logger?.BeginGame(match, affectedSide);
             game.SetPlayers(match.PatientMark);
+            opponent.OnMatchStart();
 
             while (!match.IsOver)
             {
@@ -117,6 +128,7 @@ namespace Travee.TicTacToe
                 {
                     game.SetStatus("Rândul tău – alege o căsuță");
                     selectedCell = -1;
+                    opponent.OnPatientTurn();
                     float turnStart = Time.realtimeSinceStartup;
                     SetAwaitingPatient(true);
                     while (selectedCell < 0) yield return null;
@@ -128,15 +140,17 @@ namespace Travee.TicTacToe
                 else
                 {
                     game.SetStatus("AI-ul se gândește…");
-                    yield return new WaitForSeconds(aiMoveDelay);
-                    Apply(ai.ChooseMove(match.Board.Clone(), match.AIMark), null);
+                    int cell = ai.ChooseMove(match.Board.Clone(), match.AIMark);
+                    yield return opponent.Think(aiMoveDelay);
+                    yield return opponent.PlacePiece(cell, () => Apply(cell, null));
                 }
             }
 
             logger?.EndGame();
             match.Board.Winner(out int[] line);
-            game.Board.HighlightLine(line);
+            board.HighlightLine(line);
             game.SetStatus("");
+            opponent.OnMatchEnd(match.Outcome, IsGentle(level));
             yield return new WaitForSeconds(1.2f);
 
             ShowResult(match.Outcome, level);
@@ -147,7 +161,7 @@ namespace Travee.TicTacToe
         {
             match.Play(cell);
             var move = match.Moves[match.Moves.Count - 1];
-            game.Board.SetMark(cell, move.Mark);
+            board.SetMark(cell, move.Mark);
             logger?.LogMove(move, reactionMs);
         }
 
@@ -177,7 +191,7 @@ namespace Travee.TicTacToe
 
         void ShowResult(MatchOutcome outcome, DifficultyLevel level)
         {
-            bool gentleLevel = level == DifficultyLevel.Level1 || level == DifficultyLevel.Level2;
+            bool gentleLevel = IsGentle(level);
             switch (outcome)
             {
                 case MatchOutcome.PatientWin:
@@ -197,5 +211,9 @@ namespace Travee.TicTacToe
                     break;
             }
         }
+
+        /// <summary>Nivelurile 1-2: remiza e prezentată ca un succes.</summary>
+        static bool IsGentle(DifficultyLevel level) =>
+            level == DifficultyLevel.Level1 || level == DifficultyLevel.Level2;
     }
 }
