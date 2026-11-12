@@ -45,3 +45,8 @@ crashlytics-buildsettings.json
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Asset-uri Mixamo (Adobe): nu se redistribuie. Se descarcă de pe mixamo.com (vezi README).
+/Assets/Art/Character/*.fbx
+/Assets/Art/Character/Animations/*.fbx
+/Assets/Art/Character/Textures/*.png
