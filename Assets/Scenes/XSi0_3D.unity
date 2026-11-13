@@ -14,9 +14,9 @@ OcclusionCullingSettings:
 RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
-  m_Fog: 0
+  m_Fog: 1
   m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  m_FogMode: 3
+  m_FogMode: 1
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &482102935
+--- !u!1 &656322987
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,8 +127,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 482102937}
-  - component: {fileID: 482102936}
+  - component: {fileID: 656322989}
+  - component: {fileID: 656322988}
   m_Layer: 0
   m_Name: XSi0
   m_TagString: Untagged
@@ -136,13 +136,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &482102936
+--- !u!114 &656322988
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 482102935}
+  m_GameObject: {fileID: 656322987}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6454702b67394d34d89eabd294ca83e0, type: 3}
@@ -153,6 +153,14 @@ MonoBehaviour:
   opponentAnimator: {fileID: 9100000, guid: d077bac2b67090e4bba28d5e346153a7, type: 2}
   opponentPlacement: 0
   boardSeeThroughMaterial: {fileID: 2100000, guid: d66a25f3c55b6fe42934fa50697a75cf, type: 2}
+  worldMaterial: {fileID: 2100000, guid: bcebb590f10333b4aadad7c9d9b1056a, type: 2}
+  assets: {fileID: 11400000, guid: c0d5ba6521becaf41a63a4d2c94dce09, type: 2}
+  worldTheme: 0
+  opponentReach: 1
+  boardHeight: 1.2
+  boardDistance: 0.9
+  effectsVolume: 0.8
+  ambientVolume: 0.35
   affectedSide: 0
   difficulty:
     level1PatientStartChance: 1
@@ -167,13 +175,13 @@ MonoBehaviour:
   aiMoveDelay: 0.8
   logData: 1
   randomSeed: 0
---- !u!4 &482102937
+--- !u!4 &656322989
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 482102935}
+  m_GameObject: {fileID: 656322987}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -182,7 +190,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &951813087
+--- !u!1 &801276698
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -190,8 +198,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 951813089}
-  - component: {fileID: 951813088}
+  - component: {fileID: 801276700}
+  - component: {fileID: 801276699}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -199,13 +207,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!20 &951813088
+--- !u!20 &801276699
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 951813087}
+  m_GameObject: {fileID: 801276698}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
@@ -250,13 +258,13 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &951813089
+--- !u!4 &801276700
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 951813087}
+  m_GameObject: {fileID: 801276698}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -10}
@@ -269,5 +277,5 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 951813089}
-  - {fileID: 482102937}
+  - {fileID: 801276700}
+  - {fileID: 656322989}

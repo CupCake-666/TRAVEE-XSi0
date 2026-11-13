@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Travee.TicTacToe.Audio;
 using Travee.TicTacToe.Core;
 using UnityEngine;
 using UnityEngine.UI;
@@ -27,9 +28,12 @@ namespace Travee.TicTacToe.UI
     public sealed class MenuScreen : MonoBehaviour
     {
         Text sideLabel;
+        Text themeLabel;
 
         public event Action<DifficultyLevel> LevelChosen;
         public event Action SideToggleRequested;
+        /// <summary>Doar în 3D: pacientul/terapeutul cere următorul peisaj.</summary>
+        public event Action ThemeToggleRequested;
 
         /// <param name="overScene">3D: meniul e un card în stânga, iar scena (cu personajul) se vede în dreapta.</param>
         public static MenuScreen Create(Transform parent, bool overScene = false)
@@ -45,11 +49,11 @@ namespace Travee.TicTacToe.UI
                 card.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(470, 0), new Vector2(860, 1020));
                 container = card.transform;
             }
-            screen.Build(container);
+            screen.Build(container, withTheme: overScene);
             return screen;
         }
 
-        void Build(Transform container)
+        void Build(Transform container, bool withTheme)
         {
             UIFactory.Label("Title", container, "X și 0", 110, Theme.Text, FontStyle.Bold)
                 .rectTransform.Centered(new Vector2(0, 400), new Vector2(1200, 140));
@@ -67,8 +71,20 @@ namespace Travee.TicTacToe.UI
 
             var sideButton = UIFactory.Button("AffectedSide", container, "", 36, Theme.ButtonSecondary, Theme.Text,
                 () => SideToggleRequested?.Invoke());
-            ((RectTransform)sideButton.transform).Centered(new Vector2(0, -420), new Vector2(620, 80));
+            ((RectTransform)sideButton.transform).Centered(new Vector2(0, withTheme ? -440 : -420),
+                new Vector2(620, withTheme ? 70 : 80));
             sideLabel = UIFactory.LabelOf(sideButton);
+
+            if (!withTheme) return;
+            var themeButton = UIFactory.Button("WorldTheme", container, "", 36, Theme.ButtonSecondary, Theme.Text,
+                () => ThemeToggleRequested?.Invoke());
+            ((RectTransform)themeButton.transform).Centered(new Vector2(0, -355), new Vector2(620, 70));
+            themeLabel = UIFactory.LabelOf(themeButton);
+        }
+
+        public void SetTheme(string themeName)
+        {
+            if (themeLabel != null) themeLabel.text = $"Peisaj: {themeName}";
         }
 
         public void SetAffectedSide(AffectedSide side) => sideLabel.text = $"Mâna afectată: {Texts.SideName(side)}";
@@ -128,11 +144,13 @@ namespace Travee.TicTacToe.UI
                 yield return Scale(1f, 0f, duration);
                 showingPatient = !showingPatient;
                 SetFace(showingPatient);
+                Sfx.Play(Sound.CoinTick, 0.7f);
                 yield return Scale(0f, 1f, duration);
             }
 
             title.text = patientStarts ? "Ai câștigat aruncarea!" : "AI-ul a câștigat aruncarea";
             resultLabel.text = patientStarts ? "Începi tu – tu ești X" : "Începe AI-ul – tu ești 0";
+            Sfx.Play(Sound.CoinResult);
             yield return new WaitForSeconds(resultHoldSeconds);
         }
 
@@ -198,9 +216,19 @@ namespace Travee.TicTacToe.UI
                 playerInfo.rectTransform.Place(corner, new Vector2(-380, -120), new Vector2(700, 60));
                 status.rectTransform.Place(corner, new Vector2(-380, -190), new Vector2(700, 70));
 
-                var hint = UIFactory.Label("LookHint", transform, "Click dreapta + mouse: privește în jur   •   Space: înainte",
-                    28, Theme.TextMuted);
-                hint.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(1400, 50));
+                // Un card semi-opac în spatele textelor: altfel nu se citesc peste peisaj (mai ales noaptea).
+                var infoCard = UIFactory.Panel("InfoCard", transform, Theme.Card);
+                infoCard.rectTransform.Place(corner, new Vector2(-380, -125), new Vector2(740, 230));
+                infoCard.raycastTarget = false;
+                infoCard.transform.SetAsFirstSibling();     // primul copil = desenat sub celelalte
+
+                // Indiciul de control stă în stânga-jos, ca să nu se suprapună cu tabla.
+                var hintCard = UIFactory.Panel("HintCard", transform, Theme.Card);
+                hintCard.rectTransform.Place(new Vector2(0, 0), new Vector2(470, 50), new Vector2(900, 60));
+                hintCard.raycastTarget = false;
+                var hint = UIFactory.Label("LookHint", hintCard.transform,
+                    "Click dreapta + mouse: privește în jur   •   Space: înainte", 28, Theme.TextMuted);
+                hint.rectTransform.Stretch();
             }
 
             var menu = UIFactory.Button("Menu", transform, "Meniu", 34, Theme.ButtonSecondary, Theme.Text,

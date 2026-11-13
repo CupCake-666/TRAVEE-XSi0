@@ -10,7 +10,7 @@ manuale în Inspector.
 
 | Comandă | Ce face |
 |---|---|
-| **Creează scena X și 0 (3D)** | trece rendererul pe 3D, extrage texturile personajului, corectează importul animațiilor, generează Animator Controller-ul și materialul transparent, creează scena `XSi0_3D` |
+| **Creează scena X și 0 (3D)** | trece rendererul pe 3D, extrage texturile personajului, corectează importul animațiilor, generează Animator Controller-ul și materialele, adună modelele și sunetele în `GameAssets`, creează scena `XSi0_3D` |
 | **Regenerează animațiile personajului** | corectează importul animațiilor și regenerează doar Animator Controller-ul (după ce schimbi o animație) |
 | **Creează scena X și 0 (2D)** | varianta 2D veche (scena `XSi0`) |
 
@@ -37,8 +37,10 @@ static void CreateScene3D()
     if (model == null) Debug.LogWarning("...");   // ← fără model, scena merge fără personaj
 
     var controller = BuildAnimatorController();   // ← 4. mașina de stări
-    var seeThrough = EnsureSeeThroughMaterial();  // ← 5. materialul transparent
-    CreateScene(ScenePath3D, ViewMode.ThreeD, model, controller, seeThrough);   // ← 6. scena
+    var seeThrough = EnsureSeeThroughMaterial();  // ← 5. materialul transparent al tablei
+    var world = EnsureWorldMaterial();            // ← 6. materialul de bază al obiectelor 3D
+    var assets = BuildGameAssets();               // ← 7. biblioteca de modele și sunete
+    CreateScene(ScenePath3D, ViewMode.ThreeD, model, controller, seeThrough, world, assets);   // ← 8. scena
 }
 
 public static void BatchCreateScene3D() => CreateScene3D();
@@ -52,10 +54,80 @@ static void RebuildAnimator()
 }
 ```
 
+### `BuildGameAssets()` – biblioteca de modele și sunete
+```csharp
+static GameAssets BuildGameAssets()
+{
+    var assets = AssetDatabase.LoadAssetAtPath<GameAssets>(GameAssetsPath);
+    if (assets == null)                                   // ← prima rulare: creăm fișierul .asset
+    {
+        assets = ScriptableObject.CreateInstance<GameAssets>();
+        AssetDatabase.CreateAsset(assets, GameAssetsPath);
+    }
+
+    NatureImport.Setup();                                 // ← materialele modelelor, setările panoramelor de cer
+    assets.models = LoadAll<GameObject>("t:Model", NatureImport.NatureFolder);   // ← toate modelele din Assets/Art/Nature
+    assets.skies = LoadAll<Texture2D>("t:Texture2D", NatureImport.SkyFolder);    // ← panoramele din Assets/Art/Sky
+    assets.clips = LoadAll<AudioClip>("t:AudioClip", AudioFolder);   // ← toate sunetele din Assets/Audio
+    assets.skyMaterial = EnsureSkyMaterial();
+    EditorUtility.SetDirty(assets);                       // ← „am modificat acest asset, salvează-l”
+    AssetDatabase.SaveAssets();
+    ...
+    return assets;
+}
+
+static T[] LoadAll<T>(string filter, string folder) where T : Object
+{
+    return AssetDatabase.FindAssets(filter, new[] { folder })   // ← caută după tip, ca în bara de căutare din Project
+        .Select(AssetDatabase.GUIDToAssetPath)                  // ← identificator → cale
+        .Distinct().OrderBy(path => path)                       // ← fără dubluri, în ordine alfabetică
+        .Select(AssetDatabase.LoadAssetAtPath<T>)
+        .Where(asset => asset != null)
+        .ToArray();
+}
+```
+Listele se refac la fiecare rulare a meniului. De aceea, după ce adaugi un model sau un sunet, rulezi din
+nou **TRAVEE → Creează scena X și 0 (3D)**.
+
+### NatureImport.cs – materialele modelelor și cerul
+Modelele Quaternius vin fără materiale pregătite pentru URP: în fișierul FBX e doar **numele** materialului
+(de exemplu `Leaves_NormalTree`), iar texturile sunt fișiere separate. `NatureImport.Setup()` face legătura:
+```csharp
+static readonly Recipe[] Recipes =
+{
+    new Recipe { Name = "Bark_NormalTree", Texture = "Bark_NormalTree", Normal = "Bark_NormalTree_Normal" },
+    new Recipe { Name = "Leaves_NormalTree", Texture = "Leaves_NormalTree_C", Cutout = true, DoubleSided = true },
+    ...
+};
+// ← o „rețetă” per material: numele din FBX, textura, (opțional) normal map,
+//   dacă e decupat (frunze) și dacă se vede din ambele părți
+```
+| Pas | Ce face |
+|---|---|
+| `ConfigureNormalMaps` | texturile `*_Normal` sunt importate ca Normal Map (relieful scoarței) |
+| `ConfigureSkyTextures` | panoramele de cer: limită de 8192 px (implicit Unity le-ar micșora la 2048 și cerul ar ieși neclar), fără mipmap-uri |
+| `CreateMaterials` | creează câte un material URP Lit în `Assets/Art/Nature/Materials`, după rețetă |
+| `RemapModels` | `importer.SearchAndRemapMaterials(BasedOnMaterialName, Local)`: fiecare model își caută materialele după nume în folderul `Materials` de lângă el |
+
+Frunzele sunt plăci plate cu o textură care are zone transparente. „Decupat” înseamnă **Alpha Clipping**:
+```csharp
+material.SetFloat("_AlphaClip", 1f);
+material.SetFloat("_Cutoff", 0.4f);             // ← pixelii cu alpha sub 0,4 nu se desenează deloc
+material.EnableKeyword("_ALPHATEST_ON");
+material.SetFloat("_Cull", (float)CullMode.Off);   // ← „Render Face: Both”: frunza se vede și din spate
+```
+Materialele negăsite după nume (culorile simple ale palmierilor) rămân cele din fișierul FBX.
+
+### `EnsureWorldMaterial()` și `EnsureSkyMaterial()`
+Creează, dacă lipsesc, `WorldLit.mat` (URP Lit opac, șablonul tuturor obiectelor 3D) și `SkyPanoramic.mat`
+(shader `Skybox/Panoramic` în modul „Latitude Longitude”, adică o imagine 360°). Ambele trebuie să fie
+fișiere din proiect pentru ca shaderele lor să ajungă în build; vezi „Trei capcane de build” în
+`10_Peisaje_si_Sunete.md`.
+
 ### `CreateScene(...)`
 ```csharp
 static void CreateScene(string path, ViewMode mode, GameObject model, RuntimeAnimatorController controller,
-    Material seeThrough)
+    Material seeThrough, Material world, GameAssets assets)
 {
     if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
     // ← „Vrei să salvezi scena curentă?”; Cancel → ne oprim
@@ -81,6 +153,20 @@ static void CreateScene(string path, ViewMode mode, GameObject model, RuntimeAni
     var scenes = EditorBuildSettings.scenes.Where(s => s.path != path).ToList();
     scenes.Insert(0, new EditorBuildSettingsScene(path, true));   // ← prima scenă din build = cea care pornește
     EditorBuildSettings.scenes = scenes.ToArray();
+}
+```
+
+Două detalii adăugate în `CreateScene` odată cu peisajele:
+```csharp
+so.FindProperty("assets").objectReferenceValue =
+    mode == ViewMode.ThreeD ? AssetDatabase.LoadAssetAtPath<GameAssets>(GameAssetsPath) : null;
+// ← biblioteca se REÎNCARCĂ de pe disc. `NewScene` descarcă din memorie obiectul primit ca parametru,
+//   iar o referință spre un obiect descărcat s-ar salva ca „None” (scena ar rămâne fără peisaje și sunet).
+
+if (mode == ViewMode.ThreeD)
+{
+    RenderSettings.fog = true;              // ← ceața e pornită din cod la rulare; o activăm și în scena
+    RenderSettings.fogMode = FogMode.Linear;//   salvată, altfel Unity scoate din build shaderele de ceață
 }
 ```
 

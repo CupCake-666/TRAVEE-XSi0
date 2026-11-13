@@ -17,6 +17,7 @@ Ordinea recomandată de citire:
 | `07_Scena_3D.md` | camera de joc, tabla 3D, input-ul cu mouse-ul, privitul în jur |
 | `08_Personajul_AI.md` | personajul animat: mers, IK, salut la privire, reacții |
 | `09_Editor_si_Importul.md` | meniul TRAVEE și configurarea automată a personajului Mixamo |
+| `10_Peisaje_si_Sunete.md` | peisajele (pădure, munte, plajă), cerul generat din cod, sunetele |
 
 Jocul rulează acum în **3D** (scena `XSi0_3D`). Varianta 2D de la început mai există în cod (scena `XSi0`),
 dar explicațiile de aici se concentrează pe 3D.

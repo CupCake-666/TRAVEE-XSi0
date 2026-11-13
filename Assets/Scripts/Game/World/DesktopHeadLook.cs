@@ -4,14 +4,14 @@ using UnityEngine.InputSystem;
 namespace Travee.TicTacToe.World
 {
     /// <summary>
-    /// Simulează mișcarea capului pe calculator: ții apăsat click dreapta și miști mouse-ul ca să privești în jur;
-    /// Space privește din nou înainte. În VR componenta nu se mai adaugă, camera e mișcată de ochelari.
+    /// Simulează mișcarea capului pe calculator: ții apăsat click dreapta și miști mouse-ul ca să privești în jur,
+    /// de jur împrejur (360°), ca un pacient care se întoarce în VR; Space privește din nou înainte.
+    /// În VR componenta nu se mai adaugă, camera e mișcată de ochelari.
     /// </summary>
     public sealed class DesktopHeadLook : MonoBehaviour
     {
         const float Sensitivity = 0.15f;   // grade pe pixel
-        const float MaxYaw = 75f;          // stânga / dreapta
-        const float MaxPitch = 40f;        // sus / jos
+        const float MaxPitch = 70f;        // sus / jos, față de orizont (stânga / dreapta e nelimitat)
 
         Vector3 baseAngles;
         float yaw, pitch;
@@ -27,8 +27,10 @@ namespace Travee.TicTacToe.World
             if (mouse != null && mouse.rightButton.isPressed)
             {
                 var delta = mouse.delta.ReadValue() * Sensitivity;
-                yaw = Mathf.Clamp(yaw + delta.x, -MaxYaw, MaxYaw);
-                pitch = Mathf.Clamp(pitch - delta.y, -MaxPitch, MaxPitch);
+                yaw = Mathf.Repeat(yaw + delta.x + 180f, 360f) - 180f;     // rămâne între -180° și 180°
+                // Limita e față de orizont, nu față de privirea de bază (care e deja puțin aplecată).
+                float basePitch = Mathf.DeltaAngle(0f, baseAngles.x);
+                pitch = Mathf.Clamp(pitch - delta.y, -MaxPitch - basePitch, MaxPitch - basePitch);
             }
 
             if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)

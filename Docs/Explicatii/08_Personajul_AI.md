@@ -198,48 +198,203 @@ public IEnumerator Think(float seconds)
 `A` e un alias: `using A = Travee.TicTacToe.Characters.OpponentAnimations;` (sus în fișier), ca să scriem
 `A.Idle` în loc de `OpponentAnimations.Idle`.
 
+### Măsurarea brațului – `MeasureArm`, `RequestStepIfNeeded`
+Ca mâna să atingă efectiv căsuța, personajul trebuie să stea la distanța potrivită. Distanța nu e scrisă
+„din ochi”: se calculează din scheletul modelului, deci rămâne corectă și dacă schimbi personajul.
+```csharp
+void MeasureArm(float height)
+{
+    var upper = Bone(HumanBodyBones.RightUpperArm);   // ← umărul (începutul brațului)
+    var lower = Bone(HumanBodyBones.RightLowerArm);   // ← cotul
+    var hand = Bone(HumanBodyBones.RightHand);        // ← încheietura
+    // ← rigul Humanoid dă aceleași nume de oase pentru orice personaj
+
+    // „front” = cât iese corpul în față (nas, burtă), din cutia modelului
+    ...
+    armLength = Vector3.Distance(upper.position, lower.position) + Vector3.Distance(lower.position, hand.position);
+    fingertip = Bone(HumanBodyBones.RightIndexDistal) ?? Bone(HumanBodyBones.RightMiddleDistal);
+    // ← ultima falangă a arătătorului (sau a mijlociului, dacă lipsește)
+    handLength = fingertip != null ? Vector3.Distance(hand.position, fingertip.position) : armLength * 0.3f;
+    shoulderLocal = Quaternion.Inverse(transform.rotation) * (upper.position - transform.position);
+    // ← unde e umărul față de picioare, în axele personajului (x = lateral, y = înălțime)
+    minStandDistance = front - shoulderLocal.z + BoardClearance;
+    // ← cât de aproape de tablă poate veni umărul fără ca fața să treacă prin ea
+}
+```
+Se apelează în `Setup`, când modelul e încă în poza de bază (T-pose), deci distanțele dintre oase sunt
+lungimile reale. Pentru personajul actual: braț 30 cm, mână 15 cm, umăr la 73 cm înălțime. Tot aici se
+strâng în lista `handBones` încheietura și toate falangele mâinii drepte (folosite în `LateUpdate`).
+
+```csharp
+float TouchDistance => armLength * reach + handLength * CurledFingers;
+// ← distanța umăr → căsuță la care atinge comod: brațul întins „reach” (0,95 = 95%) + mâna.
+//   CurledFingers = 0,6: în animație degetele sunt îndoite, deci mâna e mai scurtă decât în T-pose.
+
+void RequestStepIfNeeded()
+{
+    float top = board.CellBackPosition(0).y;                       // ← înălțimea rândului de sus
+    float bottom = board.CellBackPosition(Board.CellCount - 1).y;  // ← și a celui de jos
+    float distance = MaxTouchDistance;                             // ← braț + mână, întinse complet
+    float reachUp = Mathf.Sqrt(Mathf.Max(distance * distance - minStandDistance * minStandDistance, 0f));
+    // ← cât de sus ajunge de la distanța minimă (Pitagora: ipotenuza = brațul, o catetă = distanța până la tablă)
+    if (top - shoulderLocal.y > reachUp + StretchTolerance)
+        room.BuildStep((top + bottom) / 2f - shoulderLocal.y);
+    // ← nu ajunge: cere ceva pe care să urce (buturugă / stâncă), cât să-i aducă umărul la mijlocul tablei.
+    //   De acolo ajunge la fel de ușor sus și jos.
+}
+```
+Verificarea folosește `MaxTouchDistance` (brațul și degetele întinse complet), plus o toleranță de 5 cm.
+În practică nu mai cere nimic, pentru că înainte de ea rulează `GrowToReach`:
+```csharp
+void GrowToReach(float height)
+{
+    float top = board.CellBackPosition(0).y + ReachMargin;      // ← rândul de sus + 3 cm rezervă
+    float factor = top / (shoulderLocal.y + ReachUp());         // ← de câte ori trebuie mărit
+    if (factor <= 1.001f) return;                               // ← ajunge deja
+
+    transform.localScale *= factor;
+    MeasureArm(height * factor);        // ← oasele s-au mutat: măsurăm din nou brațul, mâna, umărul
+}
+```
+Când mărești un personaj, toate măsurile lui cresc în aceeași proporție: înălțimea umărului, lungimea
+brațului, cât iese capul în față. Deci și înălțimea până la care ajunge (umăr + `ReachUp()`) crește
+proporțional, iar factorul necesar se află dintr-o singură împărțire. Cu tabla la nivelul ochilor (rândul de
+sus la 1,40 m), personajul crește de la 1,40 m la 1,86 m. Dacă tabla e coborâtă, crește mai puțin sau
+deloc. Brațele îi rămân proporționale cu corpul, deci arată la fel, doar mai mare. `reach` se reglează din Inspector, pe obiectul `XSi0`
+(**Opponent Reach**): mai mic = stă mai aproape, cu cotul îndoit; 1 = braț complet întins.
+
 ### `PlacePiece(cell, place)` – pune piesa
+Regula de bază: **mâna atinge tabla, nu trece prin ea**. Personajul stă mai aproape de tablă decât lungimea
+brațului lui, deci animația singură („Button Pushing”, „Reaching Out”) i-ar duce mâna prin tablă – la
+măsurătoare trecea cu până la 25 cm. De aceea, pe toată durata animației, mâna dreaptă e condusă de IK, iar
+animația dă doar mișcarea corpului.
 ```csharp
 public IEnumerator PlacePiece(int cell, Action place)
 {
     Run(null);
+    atBoard = false;
     board.SetSeeThrough(true);          // ← tabla începe să devină transparentă
-    yield return WalkTo(room.OpponentAtBoard);   // ← merge în spatele tablei
 
-    string role = A.PlaceVariants[UnityEngine.Random.Range(0, A.PlaceVariants.Length)];   // ← o variantă la întâmplare
-    float length = Length(role);
-    handTarget = board.CellWorldPosition(cell) - board.transform.up * 0.03f;
-    // ← ținta mâinii: căsuța, cu 3 cm spre spate (personajul e în spatele tablei și o atinge prin ea)
-    lookTarget = handTarget;
-    lookWeight = 0.9f;                  // ← se uită la căsuță
+    // 1. Vine în spatele tablei, în dreptul căsuței
+    var touch = board.CellBackPosition(cell);            // ← punctul de atins, pe spatele tablei
+    var stand = StandPointFor(touch, out var facing);    // ← unde trebuie să stea și încotro să privească
+    yield return WalkTo(stand, facing);
+    atBoard = true;
 
-    if (length <= 0f) { place(); yield break; }   // ← animația lipsește: punem piesa direct
+    // 2. Căsuța se aprinde roșu; IK-ul preia mâna cât e încă lângă corp
+    plannedHandTarget = touch + (from - touch).normalized * (handLength * OpenHand);
+    // ← ținta IK-ului este ÎNCHEIETURA. O oprim intenționat prea devreme: cu o mână întreagă (degete
+    //   întinse, plus 30% rezervă) înainte de tablă. Ultimii centimetri îi face corecția fină.
+    boardNormal = -board.transform.up;                   // ← direcția dinspre tablă spre personaj
+    touchPoint = touch + boardNormal * TouchGap;         // ← osul degetului se oprește la 1,5 cm de tablă
+    handRest = from + transform.forward * 0.10f - Vector3.up * 0.22f;   // ← punct de lângă corp, sub umăr
+    handReach = 0f;                                      // ← 0 = mâna lângă corp, 1 = mâna la căsuță
+    touching = true;
 
-    float speed = Mathf.Max(1f, length / MaxPlaceDuration);   // ← accelerăm doar dacă e mai lungă de 1,8 s
-    float duration = length / speed;
-    float hit = duration * A.PlaceHitTime(role);   // ← momentul atingerii
-    animator.speed = speed;
+    board.SetAITarget(cell);
+    for (float t = 0; t < TargetPreview; t += Time.deltaTime)   // ← 0,7 s: pacientul vede ce alege AI-ul
+    {
+        handWeight = Mathf.SmoothStep(0f, 1f, t / (TargetPreview * 0.6f));   // ← IK 0 → 1, cu brațul încă jos
+        yield return null;
+    }
+
+    // 3. Animația pornește; mâna alunecă de lângă corp până la căsuță și înapoi
     Play(role);
+    for (...) handReach = Mathf.SmoothStep(0f, 1f, t / hit);    // ← spre căsuță
+    yield return new WaitForSeconds(TouchSettle);        // ← 0,22 s: corecția fină așază degetul
+    place();                                             // ← piesa apare; tabla stinge singură glow-ul
+    yield return new WaitForSeconds(TouchSettle);
+    for (...) handReach = Mathf.SmoothStep(1f, 0f, t / back);   // ← înapoi lângă corp
 
-    for (float t = 0; t < hit; t += Time.deltaTime)
-    {
-        handWeight = Mathf.SmoothStep(0f, 1f, t / hit);   // ← mâna trece treptat de la animație la căsuță
-        yield return null;
-    }
-    place();                            // ← piesa apare (Apply din GameController)
-    float rest = duration - hit;
-    for (float t = 0; t < rest; t += Time.deltaTime)
-    {
-        handWeight = Mathf.SmoothStep(1f, 0f, t / rest);  // ← mâna revine treptat la animație
-        yield return null;
-    }
-    handWeight = 0f;
-    animator.speed = 1f;
+    // 4. Abia după ce revine la Idle (brațul jos) eliberăm mâna
     Play(A.Idle);
-    // ← întoarcerea la loc o face rutina următoare (rândul pacientului sau finalul meciului)
+    for (...) handWeight = Mathf.SmoothStep(1f, 0f, t / release);
+    touching = false;
 }
 ```
-`Mathf.SmoothStep(a, b, t)` = interpolare cu început și sfârșit lin (fără smucituri).
+Sunt două „butoane” separate: `handWeight` (cât de mult ascultă mâna de IK) și `handReach` (unde e ținta, între
+corp și căsuță). `handWeight` e 1 pe toată durata animației; se schimbă doar la început și la sfârșit, când
+brațul e oricum jos. Ținta se calculează în `OnAnimatorIK`:
+```csharp
+if (touching) handTarget = Vector3.Lerp(handRest, plannedHandTarget + handCorrection, handReach);
+```
+
+### `StandPointFor` – unde stă ca să ajungă
+```csharp
+Vector3 StandPointFor(Vector3 touch, out Quaternion facing)
+{
+    var normal = -board.transform.up;   // ← direcția dinspre tablă spre personaj
+    normal.y = 0f;
+    normal.Normalize();
+    facing = Quaternion.LookRotation(-normal);           // ← cu fața spre tablă
+
+    float floor = room.StepHeight;                       // ← la tablă stă pe treaptă (0 dacă nu există)
+    float distance = TouchDistance;                      // ← umăr → căsuță
+    float dy = touch.y - (floor + shoulderLocal.y);      // ← cu cât e căsuța mai sus/jos decât umărul
+    float horizontal = Mathf.Sqrt(Mathf.Max(distance * distance - dy * dy, 0f));
+    // ← Pitagora: distanța² = orizontal² + vertical². Pentru o căsuță mai sus sau mai jos decât umărul,
+    //   trebuie să stea mai aproape de tablă.
+    horizontal = Mathf.Max(horizontal, minStandDistance);   // ← dar nu atât de aproape încât să intre în ea
+
+    var shoulder = touch + normal * horizontal;          // ← unde trebuie să ajungă umărul
+    var stand = shoulder - facing * new Vector3(shoulderLocal.x, 0f, shoulderLocal.z);
+    // ← picioarele = umărul minus decalajul umărului față de picioare (rotit în direcția în care privește)
+    stand.y = floor;
+    return stand;
+}
+```
+Rezultatul: umărul drept ajunge exact în dreptul coloanei căsuței, deci brațul se întinde drept înainte.
+
+### `LateUpdate` – mâna nu trece prin tablă, degetul ajunge pe căsuță
+`LateUpdate` rulează după animație și IK, deci aici vedem unde au ajuns de fapt oasele mâinii.
+```csharp
+void LateUpdate()
+{
+    if (!touching) return;
+
+    // 1. Niciun os al mâinii mai aproape de tablă decât TouchGap (pe drum: plus 3 cm rezervă)
+    bool arrived = handReach >= 0.999f;
+    float clearance = arrived ? 0f : TravelMargin;
+    float nearest = float.MaxValue;
+    foreach (var bone in handBones)                       // ← încheietura + toate falangele (16 oase)
+        nearest = Mathf.Min(nearest, Vector3.Dot(bone.position - touchPoint, boardNormal) - clearance);
+    // ← produsul scalar cu normala = distanța „cu semn” față de planul de atingere:
+    //   pozitivă = de partea personajului, negativă = a trecut de plan
+
+    if (nearest < 0f)
+    {
+        handPushBack -= nearest;                          // ← de la cadrul următor: ținta retrasă cu cât a depășit
+        handBones[0].position -= boardNormal * nearest;   // ← în cadrul acesta: mutăm direct mâna înapoi
+    }
+    else
+    {
+        handPushBack = Mathf.Max(0f, handPushBack - Mathf.Min(nearest * 0.5f, 0.3f * Time.deltaTime));
+        // ← când e loc, retragerea se relaxează: cel mult jumătate din spațiul liber pe cadru
+    }
+
+    // 2. Cu mâna ajunsă, aducem vârful arătătorului pe punctul de atingere
+    if (fingertip != null && arrived)
+    {
+        var error = touchPoint - fingertip.position;
+        float towardBoard = Vector3.Dot(error, boardNormal);
+        if ((handPushBack > 0f || nearest < 0.002f) && towardBoard < 0f) error -= boardNormal * towardBoard;
+        // ← dacă alt deget e deja la limită, nu mai înaintăm: corectăm doar lateral și pe înălțime
+        handFine = Vector3.ClampMagnitude(handFine + error * (1f - Mathf.Exp(-22f * Time.deltaTime)), MaxCorrection);
+        // ← o fracțiune din eroare pe cadru; formula cu Exp o face independentă de numărul de cadre pe secundă
+    }
+    handCorrection = handFine + boardNormal * handPushBack;
+}
+```
+Sunt două reguli. Prima e o **limită**: mâna e tratată ca un obiect care nu poate intra în tablă; dacă un os
+ajunge prea aproape, mâna e trasă înapoi imediat, iar ținta IK-ului e retrasă pentru cadrele următoare. A
+doua e o **buclă de reglaj** (regulator proporțional): măsurăm cât mai are degetul până la căsuță și mutăm
+ținta cu o parte din eroare, până ajunge. Nu ghicim poziția degetului din animație; o măsurăm.
+
+**Verificare:** pentru toate cele 9 căsuțe, de două ori (cu ambele animații), am înregistrat cea mai mică
+distanță a oricărui os al mâinii față de spatele tablei pe **toată** mișcarea. Înainte: până la −25 cm (prin
+tablă). Acum, cu tabla la nivelul ochilor: minimum +1,3 cm în toate cele 18 cazuri, iar în momentul în care
+apare piesa cel mai apropiat vârf de deget e la 1,5–1,7 cm de suprafață (măsurat la os; grosimea degetului
+acoperă diferența), la cel mult 7,1 cm de centrul căsuței (căsuța are ~19 cm lățime).
 
 ### Rutinele
 ```csharp
@@ -251,13 +406,13 @@ IEnumerator EnterRoutine()
     transform.SetPositionAndRotation(start, Quaternion.LookRotation(home - start));
     yield return WalkTo(home);
     entering = false;
-    yield return Hold(A.Wave, WaveDuration);
+    yield return Greet();               // ← sunet + animația de salut
 }
 
 IEnumerator GoHome(bool thenWave = false)
 {
     yield return WalkTo(home);
-    if (thenWave) yield return Hold(A.Wave, WaveDuration);
+    if (thenWave) yield return Greet();
 }
 ```
 
@@ -279,7 +434,7 @@ IEnumerator PatientTurn()
 
         if (gaze >= GazeHold && cooldown <= 0f)
         {
-            yield return Hold(A.Wave, WaveDuration);   // ← pacientul s-a uitat la el → îi face cu mâna
+            yield return Greet();           // ← pacientul s-a uitat la el → îi face cu mâna
             cooldown = WaveCooldown;
             gaze = 0f;
         }
@@ -308,26 +463,42 @@ IEnumerator MatchEnd(MatchOutcome outcome, bool celebrateDraw)
 
 ### Mersul și întoarcerea
 ```csharp
-IEnumerator WalkTo(Vector3 target)
+IEnumerator WalkTo(Vector3 target, Quaternion? facing = null)
+// ← `Quaternion?` = poate fi null („nullable”). Fără el, la final se întoarce spre pacient.
 {
+    target.y = room.FloorHeight(target);        // ← ținta e pe „podea” (pe treaptă, dacă e acolo)
     if ((transform.position - target).sqrMagnitude > 0.0004f)   // ← mai departe de 2 cm?
     {
         lookWeight = 0f;                // ← nu forțăm privirea în timpul mersului
         Play(A.Walk);
-        yield return TurnTo(Quaternion.LookRotation(target - transform.position));   // ← se întoarce spre țintă
-        if ((transform.position - room.OpponentAtBoard).sqrMagnitude < 0.01f && target != room.OpponentAtBoard)
-            board.SetSeeThrough(false);
-        // ← dacă pleacă de la tablă, tabla redevine opacă
-
-        while ((transform.position - target).sqrMagnitude > 0.0004f)
+        var direction = target - transform.position;
+        direction.y = 0f;               // ← se întoarce doar pe orizontală, chiar dacă urcă
+        yield return TurnTo(Quaternion.LookRotation(direction));
+        if (atBoard)                    // ← pleacă de la tablă: tabla redevine opacă
         {
-            transform.position = Vector3.MoveTowards(transform.position, target, WalkSpeed * Time.deltaTime);
+            atBoard = false;
+            board.SetSeeThrough(false);
+        }
+
+        float step = StepInterval * 0.5f;       // ← primul pas se aude repede
+        while (Flat(transform.position - target).sqrMagnitude > 0.0004f)
+        {
+            var next = Vector3.MoveTowards(Flat(transform.position), Flat(target), WalkSpeed * Time.deltaTime);
+            next.y = room.FloorHeight(next);    // ← merge pe orizontală; înălțimea o dă podeaua
+            transform.position = next;
+            step += Time.deltaTime;
+            if (step >= StepInterval)           // ← la fiecare 0,45 s: un sunet de pas,
+            {                                   //   auzit din direcția personajului
+                step = 0f;
+                Sfx.PlayAt(Sound.Footstep, transform.position, 0.6f);
+            }
             yield return null;          // ← un pas pe frame; animația Walk e „pe loc”, deci picioarele țin pasul
         }
         transform.position = target;
         Play(A.Idle);
     }
-    yield return TurnTo(FacePatientFrom(target));   // ← la final, cu fața spre pacient
+    yield return TurnTo(facing ?? FacePatientFrom(target));
+    // ← `a ?? b` = „a, iar dacă e null, b”
 }
 
 IEnumerator TurnTo(Quaternion rotation)
@@ -342,6 +513,8 @@ IEnumerator TurnTo(Quaternion rotation)
     transform.rotation = rotation;
 }
 ```
+`Flat(v)` întoarce vectorul cu `y = 0` (doar componenta orizontală). `Greet()` este salutul: ține animația
+de salut `WaveDuration` secunde (fără sunet).
 
 ### `OneShot`, `Hold`, `Run`
 ```csharp

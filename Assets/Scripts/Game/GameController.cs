@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Travee.TicTacToe.Audio;
 using Travee.TicTacToe.Core;
 using Travee.TicTacToe.Core.AI;
 using Travee.TicTacToe.UI;
@@ -162,6 +163,8 @@ namespace Travee.TicTacToe
             match.Play(cell);
             var move = match.Moves[match.Moves.Count - 1];
             board.SetMark(cell, move.Mark);
+            // reactionMs există doar pentru mutările pacientului: așa știm al cui sunet să redăm.
+            Sfx.Play(reactionMs.HasValue ? Sound.PlacePatient : Sound.PlaceAI);
             logger?.LogMove(move, reactionMs);
         }
 
@@ -195,18 +198,22 @@ namespace Travee.TicTacToe
             switch (outcome)
             {
                 case MatchOutcome.PatientWin:
+                    Sfx.Play(Sound.Win);
                     result.Show("Felicitări, ai câștigat!", "Ai jucat excelent.", Theme.X);
                     break;
                 case MatchOutcome.Draw when gentleLevel:
                     // La nivelurile 1-2 remiza e prezentată tot ca un succes.
+                    Sfx.Play(Sound.Win);
                     result.Show("Bravo, ai jucat foarte bine!", "Ai fost foarte aproape de victorie – mai încearcă o dată!", Theme.X);
                     break;
                 case MatchOutcome.Draw:
+                    Sfx.Play(Sound.Draw);
                     result.Show("Remiză", level == DifficultyLevel.Level4
                         ? "Ai ținut piept AI-ului! Pentru victorie e nevoie de o strategie aproape perfectă."
                         : "Un meci echilibrat. Mai încerci?", Theme.Text);
                     break;
                 default:
+                    Sfx.Play(Sound.Lose);
                     result.Show("AI-ul a câștigat de data aceasta", "Nu-i nimic – fiecare meci este un exercițiu bun!", Theme.O);
                     break;
             }

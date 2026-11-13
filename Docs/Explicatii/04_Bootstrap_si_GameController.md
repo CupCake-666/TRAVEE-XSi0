@@ -1,5 +1,7 @@
 # 04 – TicTacToeBootstrap.cs și GameController.cs
 
+> **Actualizare:** bootstrap-ul are câmpuri noi (`assets`, `worldTheme`, `opponentReach`, volumele) și creează sunetele (`Sfx.Create`) și peisajul (`Room3D.Build(transform, assets, theme)`); `GameController` redă sunete în `Apply` și `ShowResult`. Toate sunt explicate în `10_Peisaje_si_Sunete.md`. Tot în Inspector sunt **Board Height** și **Board Distance** (înălțimea și distanța tablei; vezi `07_Scena_3D.md`).
+
 Primele fișiere din partea **Unity** (`Assets/Scripts/Game/`). Aici apar `MonoBehaviour`, `Awake`, corutine etc.
 (vezi `00_Introducere`, secțiunea 3). Convenție: comentariile `// ←` sunt explicațiile mele.
 
@@ -115,7 +117,7 @@ void Awake()                                   // ← apelată automat de Unity 
     // ← componentele Unity nu se creează cu `new`, ci cu AddComponent; de aceea există Init(...) separat
     if (is3D)
     {
-        var room = Room3D.Build(transform);    // ← podea, perete, lumină, cameră (vezi 07)
+        var room = Room3D.Build(transform, assets, theme);    // ← peisaj, lumină, cameră (vezi 07 și 10)
         room.Camera.gameObject.AddComponent<DesktopHeadLook>(); // ← click dreapta = privește în jur (în VR: ochelarii)
         var board = Board3DView.Create(room.Root, room.BoardPosition, room.BoardRotation, room.Camera,
             boardSeeThroughMaterial);          // ← tabla 3D verticală, în fața pacientului

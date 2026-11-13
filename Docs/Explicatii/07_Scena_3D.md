@@ -42,22 +42,44 @@ atingerea degetului pe collider-ul căsuței, și se înregistrează cu `control
 static readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
 // ← un material per culoare, refolosit (mai puține materiale = randare mai rapidă)
 
+public static Material Template { get; set; }
+// ← materialul de la care pornesc toate: WorldLit.mat (URP Lit), setat de TicTacToeBootstrap
+
 public static Material Material(Color color, float smoothness = 0.25f)
 {
     if (materials.TryGetValue(color, out var cached) && cached != null) return cached;   // ← există deja
 
-    var source = GraphicsSettings.currentRenderPipeline != null
-        ? GraphicsSettings.currentRenderPipeline.defaultMaterial
-        : null;
-    // ← materialul implicit al pipeline-ului URP (shader-ul „Lit”). Pornim de la el ca să fim siguri
-    //   că shader-ul ajunge și în build (un shader căutat doar după nume poate lipsi din build).
-    var material = source != null ? new Material(source) : new Material(Shader.Find("Standard"));
+    var source = Template;
+    if (source == null && GraphicsSettings.currentRenderPipeline != null)
+        source = GraphicsSettings.currentRenderPipeline.defaultMaterial;   // ← rezervă; merge DOAR în editor
+    Material material;
+    if (source != null)
+    {
+        material = new Material(source);       // ← copie a șablonului
+    }
+    else
+    {
+        var shader = Shader.Find("Universal Render Pipeline/Lit");   // ← ultima rezervă: shader după nume
+        if (shader == null)
+        {
+            Debug.LogError("[TRAVEE] Lipsește materialul de bază al scenei 3D. ...");
+            return null;
+        }
+        material = new Material(shader);
+    }
     material.color = color;                    // ← culoarea de bază
     if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);   // ← cât de lucios
     materials[color] = material;
     return material;
 }
 ```
+**De ce un șablon?** Prima variantă pornea de la materialul implicit al pipeline-ului. Acela există doar în
+editor: în aplicația construită (`.exe`) era `null`, codul se oprea cu o eroare la prima podea și nu se mai
+construia nimic (meniul, moneda și rezultatul apăreau suprapuse). `WorldLit.mat` este un fișier din proiect,
+referit de scenă, deci Unity îl include sigur în build, împreună cu shader-ul lui.
+
+Tot aici mai sunt `Mountain(rng, topFrom)`, mesh-ul neregulat pentru munți și insule, și
+`MottledMaterial(...)`, textura de sol generată din cod (explicate în `10_Peisaje_si_Sunete.md`).
 
 ### `Primitive`, `Box`, `Group`
 ```csharp
@@ -110,63 +132,59 @@ La final, `new Mesh`, `SetVertices`, `SetNormals`, `SetTriangles`, `RecalculateB
 
 ---
 
-## Room3D.cs – camera de joc
+## Room3D.cs – scena de joc
 
-Clasă C# obișnuită (nu MonoBehaviour): construiește scena și ține minte pozițiile importante.
+Clasă C# obișnuită (nu MonoBehaviour): ține minte pozițiile importante, camera și lumina și aplică
+peisajul ales. Peisajele, cerul și `SetTheme` sunt explicate în `10_Peisaje_si_Sunete.md`; aici sunt
+pozițiile, camera și treapta personajului.
 
 ### Pozițiile
 ```csharp
 public const float EyeHeight = 1.2f;           // ← înălțimea ochilor unui pacient așezat
+public const float DefaultBoardHeight = EyeHeight, DefaultBoardDistance = 0.9f;   // ← centrul tablei la nivelul ochilor
 
-public Vector3 BoardPosition => new Vector3(0f, 1.12f, 0.9f);
-// ← centrul tablei: drept în față, la 0,9 m, puțin sub nivelul ochilor
+public Vector3 BoardPosition { get; private set; } = new Vector3(0f, DefaultBoardHeight, DefaultBoardDistance);
+// ← centrul tablei: drept în față. Valorile vin din Inspector (Board Height, Board Distance pe obiectul XSi0)
 public const float BoardScale = 1.3f;
-// ← tabla are 0,48 m; mărită de 1,3 ori ≈ 0,62 m, ca să ocupe cam cât ocupa în 2D
+// ← tabla are 0,48 m; mărită de 1,3 ori ≈ 0,62 m
 public Quaternion BoardRotation => Quaternion.Euler(-90f, 0f, 0f);
 // ← tabla e construită culcată (fața în sus, +Y). Rotită cu -90° în jurul axei X,
 //   fața ajunge să privească spre pacient (-Z), iar rândul 0 ajunge sus
 
 public Vector3 OpponentHome(AffectedSide side) =>
-    new Vector3(side == AffectedSide.Left ? -1.1f : 1.1f, 0f, 1.45f);
-// ← unde așteaptă personajul: 1,1 m lateral, 1,45 m în față (în câmpul vizual, mai în spate decât tabla)
-public Vector3 OpponentAtBoard => new Vector3(0f, 0f, 1.25f);
-// ← unde stă când pune piesa: în spatele tablei, cât să ajungă cu mâna la căsuțe
+    new Vector3(side == AffectedSide.Left ? -1.3f : 1.3f, 0f, BoardPosition.z + 0.8f);
+// ← unde așteaptă personajul: 1,3 m lateral, cu 80 cm mai în spate decât tabla
 ```
-Pozițiile sunt proprietăți (`=>`), deci se calculează la fiecare citire. Toate valorile de așezare sunt adunate
-aici, ca să poată fi ajustate dintr-un singur loc.
+**Centrul tablei e la nivelul ochilor (1,2 m).** Pacientul o privește drept înainte, fără să aplece capul.
+Rândurile sunt la ~1,40 / 1,20 / 1,00 m. Personajul în mărimea lui de bază (1,40 m, cu umărul la 73 cm) nu
+ar ajunge nici la rândul din mijloc, așa că este **mărit automat** exact cât e nevoie ca să atingă rândul de
+sus cu brațul întins: ajunge la 1,86 m. Dacă schimbi înălțimea tablei din Inspector, mărimea lui se
+recalculează la pornire.
 
-### `Build` și geometria
+De știut pentru partea de recuperare: cu centrul la nivelul ochilor, rândul de sus (1,40 m) e mult peste
+umărul unui pacient așezat (~1 m), deci atingerea lui cu mâna cere ridicarea brațului peste umăr. Pentru
+jocul cu mouse-ul nu contează; pentru atingerea în VR, înălțimea trebuie aleasă împreună cu terapeutul (din
+**Board Height**; la ~0,75–0,9 m toate rândurile rămân la umăr sau sub el).
+
+**Distanța** (0,9 m) e potrivită pentru jocul cu mouse-ul. Pentru atingerea cu mâna în VR, tabla trebuie
+adusă la distanța brațului pacientului (orientativ 0,5–0,65 m); se schimbă din același loc, iar personajul
+își recalculează singur pozițiile. Valorile sunt puncte de pornire: le stabilește terapeutul.
+
+### `Build`
 ```csharp
-public static Room3D Build(Transform parent)
+public static Room3D Build(Transform parent, GameAssets assets, WorldTheme theme)
 {
-    var room = new Room3D { Root = WorldFactory.Group("Room3D", parent, Vector3.zero) };
-    // ← `{ Root = ... }` = setează proprietatea imediat după construcție („object initializer”)
-    room.BuildGeometry();
-    room.BuildLighting();
+    var room = new Room3D
+    {
+        Root = WorldFactory.Group("Room3D", parent, Vector3.zero),
+        assets = assets,
+    };
+    // ← `{ Root = ..., assets = ... }` = setează câmpurile imediat după construcție („object initializer”)
+    room.BuildLighting();       // ← lumina principală (culoarea și direcția le dă peisajul)
     room.SetupCamera();
+    room.SetTheme(theme);       // ← decorul, cerul, ceața, ambianța
     return room;
 }
-
-void BuildGeometry()
-{
-    WorldFactory.Box("Floor", Root, new Vector3(0, -0.05f, 1f), new Vector3(8f, 0.1f, 8f), Floor);
-    // ← podeaua: o placă de 8×8 m, cu fața de sus exact la y = 0
-    WorldFactory.Box("Wall", Root, new Vector3(0, 1.5f, 2.6f), new Vector3(8f, 3f, 0.1f), Wall);
-    // ← peretele din spate, la 2,6 m
-}
-```
-
-### Lumina
-```csharp
-RenderSettings.ambientMode = AmbientMode.Flat;           // ← lumină ambientală uniformă (fără skybox)
-RenderSettings.ambientLight = new Color(0.55f, 0.57f, 0.62f);   // ← umbrele nu sunt complet negre
-
-var sun = new GameObject("Light").AddComponent<Light>();
-sun.type = LightType.Directional;              // ← ca un „soare” (DirectionalLight în Unreal)
-sun.intensity = 1.1f;
-sun.color = new Color(1f, 0.96f, 0.9f);        // ← ușor caldă
-sun.shadows = LightShadows.Soft;               // ← umbre cu margini moi
-sun.transform.rotation = Quaternion.Euler(50f, -25f, 0f);   // ← vine de sus, din stânga-spate
 ```
 
 ### Camera = capul pacientului
@@ -175,12 +193,50 @@ Camera = UnityEngine.Camera.main;              // ← camera din scenă (sau una
 Camera.orthographic = false;                   // ← perspectivă 3D
 Camera.fieldOfView = 65f;                      // ← unghi larg cât să încapă tabla și personajul
 Camera.nearClipPlane = 0.05f;                  // ← obiectele foarte apropiate (în VR, mâinile) nu dispar
-Camera.clearFlags = CameraClearFlags.SolidColor;
-Camera.backgroundColor = Wall;
+Camera.farClipPlane = 1500f;                   // ← munții și insulele sunt la sute de metri
 Camera.transform.position = new Vector3(0f, EyeHeight, 0f);
-Camera.transform.LookAt(BoardPosition + Vector3.up * 0.05f);   // ← privește spre centrul tablei
+Camera.transform.LookAt(new Vector3(0f, (EyeHeight + BoardPosition.y) / 2f + 0.03f, BoardPosition.z));
+// ← privirea de bază e la jumătatea dintre orizont și tablă: pe ecran se văd și tabla (jos),
+//   și peisajul cu personajul (sus)
 ```
-În VR, poziția și rotația camerei vor fi date de ochelari; restul scenei rămâne la fel.
+Fundalul camerei (cer sau culoare simplă) îl setează `Sky.Apply`. În VR, poziția și rotația camerei vor fi
+date de ochelari; restul scenei rămâne la fel.
+
+### Locul pe care urcă personajul
+Această parte **nu se mai folosește** în mod normal: personajul e mărit automat cât să ajungă la rândul de
+sus (`GrowToReach`, în `08_Personajul_AI.md`). A rămas ca plasă de siguranță: dacă totuși nu ajunge,
+personajul îi cere scenei ceva pe care să urce (`RequestStepIfNeeded`, în
+`08_Personajul_AI.md`).
+```csharp
+public void BuildStep(float height)
+{
+    if (height <= 0.01f || StepHeight > 0f) return;     // ← nu e nevoie / există deja
+    StepHeight = height;
+    BuildStand();
+}
+
+void BuildStand()
+{
+    if (StepHeight <= 0f || environment == null) return;
+    EnvironmentBuilder.BuildStand(Theme, assets, environment, new Vector3(0f, 0f, StepCenterZ),
+        StepHalfWidth, StepHalfDepth, StepHeight);
+    // ← obiectul propriu-zis depinde de peisaj: buturugă în pădure, lespede de stâncă la munte și pe plajă,
+    //   podium de lemn dacă lipsește modelul (vezi 10_Peisaje_si_Sunete.md). E copil al decorului, deci dispare
+    //   odată cu el; de aceea SetTheme îl reconstruiește la fiecare schimbare de peisaj.
+}
+
+public float FloorHeight(Vector3 point)
+{
+    if (StepHeight <= 0f) return 0f;
+    float dx = Mathf.Max(0f, Mathf.Abs(point.x) - StepHalfWidth);                 // ← cât de departe e punctul
+    float dz = Mathf.Max(0f, Mathf.Abs(point.z - StepCenterZ) - StepHalfDepth);   //   de marginea zonei
+    float outside = Mathf.Sqrt(dx * dx + dz * dz);
+    return StepHeight * (1f - Mathf.SmoothStep(0f, 1f, outside / StepRamp));
+    // ← în zonă: înălțimea ei; la mai mult de 30 cm de ea: 0; între: trecere lină
+}
+```
+`FloorHeight` răspunde la întrebarea „cât de sus e podeaua aici?”. Personajul o întreabă la fiecare pas,
+așa că urcă și coboară treptat, fără să știe nimic despre forma obiectului pe care calcă.
 
 ---
 
@@ -320,6 +376,44 @@ int CellUnderPointer()
 ```
 `Mouse.current` vine din noul Input System: `leftButton.wasPressedThisFrame` = s-a apăsat exact în acest frame.
 
+### Căsuța aleasă de AI – glow-ul roșu
+Înainte să pună piesa, AI-ul își arată căsuța: aceasta pulsează roșu, la fel cum căsuța pacientului se
+colorează galben la hover.
+```csharp
+static readonly Color TargetColor = new Color(0.93f, 0.20f, 0.18f);
+int aiTarget = -1;                      // ← indexul căsuței marcate; -1 = niciuna
+
+public void SetAITarget(int cell)
+{
+    if (cell == aiTarget) return;
+    int previous = aiTarget;
+    aiTarget = cell;
+    if (previous >= 0) RefreshTile(previous);   // ← căsuța veche revine la materialul normal
+    if (aiTarget >= 0) RefreshTile(aiTarget);   // ← cea nouă primește materialul roșu
+}
+
+void UpdateTarget()                     // ← apelată din Update, la fiecare frame
+{
+    if (aiTarget < 0) return;
+    float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * TargetPulse);   // ← 0..1..0, de ~1 dată pe secundă
+    var color = Color.Lerp(Color.Lerp(TileColor, TargetColor, 0.6f), TargetColor, pulse);
+    color.a = Mathf.Lerp(0.55f, 0.95f, pulse);                        // ← și transparența pulsează
+    targetMaterial.color = color;
+}
+```
+`targetMaterial` e creat cu `fades: false`: nu intră în lista materialelor care devin transparente odată cu
+tabla. Altfel, căsuța roșie ar fi abia vizibilă exact când personajul e în spatele tablei. `RefreshTile`
+alege materialul în ordinea: țintă AI → linie câștigătoare → normal. Glow-ul se stinge singur în `SetMark`
+(când apare piesa) și în `ResetBoard`.
+
+```csharp
+public Vector3 CellBackPosition(int cell) =>
+    tiles[cell].transform.position - transform.up * ((PlateHeight + TileHeight / 2f) * transform.lossyScale.y);
+// ← punctul de pe SPATELE tablei din dreptul căsuței: acolo atinge personajul.
+//   transform.up arată spre pacient; mergem în sens opus cu grosimea plăcii + jumătate de căsuță.
+//   lossyScale = scala din lume (tabla e mărită de 1,3 ori).
+```
+
 ### Hover, resetare, piese, linia câștigătoare
 ```csharp
 void SetHovered(int cell)
@@ -411,8 +505,7 @@ static IEnumerator DropIn(Transform piece)
 public sealed class DesktopHeadLook : MonoBehaviour
 {
     const float Sensitivity = 0.15f;   // ← grade pe pixel de mișcare a mouse-ului
-    const float MaxYaw = 75f;          // ← cât se poate întoarce stânga / dreapta
-    const float MaxPitch = 40f;        // ← cât se poate uita sus / jos
+    const float MaxPitch = 70f;        // ← cât se poate uita sus / jos, față de orizont
 
     Vector3 baseAngles;                // ← orientarea de pornire (spre tablă)
     float yaw, pitch;                  // ← cât s-a întors față de ea
@@ -425,8 +518,12 @@ public sealed class DesktopHeadLook : MonoBehaviour
         if (mouse != null && mouse.rightButton.isPressed)       // ← doar cât ții apăsat click dreapta
         {
             var delta = mouse.delta.ReadValue() * Sensitivity;  // ← cât s-a mișcat mouse-ul în acest frame
-            yaw = Mathf.Clamp(yaw + delta.x, -MaxYaw, MaxYaw);       // ← stânga-dreapta
-            pitch = Mathf.Clamp(pitch - delta.y, -MaxPitch, MaxPitch); // ← sus-jos (mouse în sus = privire în sus)
+            yaw = Mathf.Repeat(yaw + delta.x + 180f, 360f) - 180f;
+            // ← stânga-dreapta e NELIMITAT: te poți întoarce de jur împrejur. Mathf.Repeat ține valoarea
+            //   între -180° și 180° (după 180° urmează -180°, adică același loc)
+            float basePitch = Mathf.DeltaAngle(0f, baseAngles.x);    // ← privirea de bază e deja puțin aplecată
+            pitch = Mathf.Clamp(pitch - delta.y, -MaxPitch - basePitch, MaxPitch - basePitch);
+            // ← sus-jos: limita de 70° e față de orizont, nu față de privirea de bază
         }
 
         if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
@@ -436,6 +533,6 @@ public sealed class DesktopHeadLook : MonoBehaviour
     }
 }
 ```
-Pe calculator simulează mișcarea capului, ca personajul să poată reacționa când „pacientul” se uită la el.
-În VR componenta nu se mai adaugă: camera e rotită de ochelari, iar codul personajului care verifică
-privirea rămâne același.
+Pe calculator simulează mișcarea capului: un pacient în VR se poate întoarce complet, deci și aici se poate
+privi 360°, iar peisajele sunt construite de jur împrejur. În VR componenta nu se mai adaugă: camera e rotită
+de ochelari, iar codul personajului care verifică privirea rămâne același.

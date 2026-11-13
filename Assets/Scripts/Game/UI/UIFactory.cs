@@ -1,3 +1,4 @@
+using Travee.TicTacToe.Audio;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -126,6 +127,7 @@ namespace Travee.TicTacToe.UI
             var label = Label("Label", image.transform, text, fontSize, textColor, FontStyle.Bold);
             label.rectTransform.Stretch();
 
+            button.onClick.AddListener(() => Sfx.Play(Sound.Click));   // toate butoanele au același sunet
             if (onClick != null) button.onClick.AddListener(onClick);
             return button;
         }
