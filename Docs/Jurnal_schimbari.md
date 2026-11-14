@@ -5,6 +5,108 @@ Explicațiile de cod, linie cu linie, sunt în `Docs/Explicatii/`.
 
 ---
 
+## 13 noiembrie 2026 (a noua rundă) – fereastra Scene în 3D, interfața în scenă
+
+**Fereastra Scene tot în 2D.** Runda trecută o trecusem pe 3D dintr-o comandă rulată fără interfața
+editorului, deci setarea nu a ajuns la fereastra deschisă pe ecran. Acum `Editor/SceneView3D.cs` o trece pe 3D
+automat, o singură dată, când editorul încarcă scripturile, și există și comanda
+**TRAVEE → Scena editabilă → Treci fereastra Scene pe 3D**.
+
+**Interfața e în scenă** (obiectul `Interfata`: Canvas cu `GameScreen`, `CoinFlipScreen`, `ResultScreen`,
+`MenuScreen`). Poziții, mărimi, culori, fonturi și texte fixe se schimbă din editor; logica a rămas în cod.
+
+- Cele patru ecrane erau într-un singur fișier (`Screens.cs`), deci nu puteau fi salvate în scenă; fiecare
+  are acum fișierul lui. `Screens.cs` mai conține doar numele nivelurilor.
+- Fiecare ecran ține **legături serializate** spre obiectele lui (`[SerializeField]`: butoanele, textele) și
+  are metoda `Wire()`, care leagă butoanele de logică la pornire. Legăturile făcute din cod (`AddListener`)
+  nu se salvează în scenă, de aceea se refac de fiecare dată.
+- La pornire, dacă cele patru ecrane există în scenă, jocul le folosește; altfel construiește interfața din
+  cod, ca înainte.
+- Moneda folosește o imagine salvată ca asset (`Assets/Art/UI/Circle.png`, generată din cod de comanda din
+  editor).
+- **Cardul de rezultat s-a mutat în dreapta tablei.** De când tabla e la nivelul ochilor, cardul lat de jos
+  acoperea rândul de jos și linia câștigătoare.
+
+**Verificare (în Unity, cu editorul închis):** comanda a pus interfața în scenă fără erori și fără scripturi
+lipsă; jocul folosește un singur Canvas, cel din scenă; un test a apăsat din cod butoanele din scenă –
+„Peisaj” a schimbat peisajul, „Nivel 1” a pornit meciul, meciul s-a jucat până la ecranul de rezultat, iar
+„Joacă din nou” a repornit; capturi cu meniul, moneda și rezultatul. **Nu am putut verifica** trecerea
+automată a ferestrei Scene pe 3D (are nevoie de editorul deschis pe ecran) și nici click-urile reale cu
+mouse-ul pe butoane.
+
+---
+
+## 13 noiembrie 2026 (a opta rundă) – tot ce ține de Unity e în scenă
+
+Observații după prima încercare: peisajele apăreau „într-o lume 2D” și obiectele nu puteau fi selectate unul
+câte unul. Cerință: control complet asupra scenei – inclusiv personajul și Animator-ul lui – cu codul rămas
+doar pentru ce e logică.
+
+**Cauzele celor două probleme**
+- *2D:* proiectul a pornit din șablonul 2D, deci fereastra Scene se deschidea în modul 2D (privire fixă din
+  față). Comanda de pregătire o trece acum pe 3D și setează proiectul pe 3D.
+- *Selectarea:* fiecare obiect de decor are acum componenta `PropHolder` (`[SelectionBase]`): un click pe
+  model selectează obiectul lui, gata de mutat. În plus, componentele mici (`Flicker`, `Tide`, `FlameDance`,
+  `Firefly`) erau definite în același fișier cu alt cod și **nu se salvau** în scenă; fiecare are acum
+  fișierul ei.
+
+**Ce e acum în scenă** (creat de **TRAVEE → Scena editabilă → 1. Pune totul în scenă**, doar dacă lipsește)
+
+| Obiect | Înainte | Acum |
+|---|---|---|
+| `Main Camera` | mutată din cod la pornire | așezată în scenă; jocul n-o mai mută |
+| `Tabla` | creată din cod | obiect în scenă; Transform-ul îi dă poziția, rotația, mărimea |
+| `Personaj` | instanțiat din cod | instanță a modelului, cu Animator și setări în Inspector |
+| `Loc_Stanga`, `Loc_Dreapta` | coordonate în cod | obiecte goale pe care le muți |
+| `Decor_... → Peisaj` | construit din cod la pornire | obiecte salvate, selectabile individual |
+| `Decor_... → Soare` | lumină creată din cod | lumină în scenă |
+| `Theme Settings` pe `Decor_...` | valori în cod | cer, ceață, lumină ambientă, sunet de fundal în Inspector |
+
+Regula din cod: **ce există în scenă e folosit ca atare; ce lipsește e creat din cod**, cu valorile implicite.
+Deci jocul pornește și dintr-o scenă goală, iar un obiect șters din greșeală nu strică nimic.
+
+**Alte schimbări**
+- Animator Controller-ul nu mai e șters și regenerat la fiecare rulare a meniului TRAVEE (s-ar fi pierdut
+  orice modificare făcută în fereastra Animator). Se regenerează doar la cerere, păstrând același fișier.
+- Setările personajului (parte, înălțime, mărire automată, întinderea brațului, viteza de mers, durata
+  salutului, durata căsuței roșii, unghiul privirii) au devenit câmpuri în Inspector.
+- Tabla se vede în editor ca un contur (gizmo), ca s-o poți așeza.
+
+**A rămas în cod:** interfața (meniul, moneda, textele, ecranul de rezultat) – e construită la pornire și nu
+apare în Hierarchy înainte de Play. Mutarea ei în scenă e un pas separat. La fel plăcuțele tablei și piesele,
+care apar și dispar în timpul jocului.
+
+**Verificare (în Unity, cu editorul închis):** comanda a rulat fără erori; în scenă nu există scripturi
+lipsă; jocul pornit din această scenă folosește personajul și tabla din scenă, nu construiește nimic din cod
+(0 obiecte generate), are o singură lumină direcțională activă și 776 de obiecte de decor în pădure;
+atingerea a fost măsurată din nou pe toate cele 9 căsuțe (minimum 1,3 cm față de tablă, deget la 1,5–1,7 cm
+la atingere); capturi din cele trei peisaje, față și spate. **Nu am putut verifica** cum arată și cum se
+lucrează efectiv în fereastra Scene (selectarea cu mouse-ul, gizmo-ul tablei), pentru că verificarea
+automată nu are interfața editorului.
+
+---
+
+## 13 noiembrie 2026 (a șaptea rundă) – peisajele vizibile și editabile în fereastra Scene
+
+Cerință: peisajele să apară efectiv în Scene, cu toate asset-urile, ca să poată fi aranjate de mână și
+completate, pentru toate cele trei.
+
+- **`Editor/WorldBaker.cs` (nou)**, meniul **TRAVEE → Peisaje editabile**: construiește cele trei peisaje cu
+  același cod ca jocul, dar în editor, și le salvează în scenă sub `Decor_... → Peisaj`. Comenzi: pune
+  peisajele în scenă; arată în editor unul dintre ele (cu cerul, ceața și lumina lui); reconstruiește din cod
+  peisajul afișat; scoate peisajele din scenă.
+- **Jocul folosește peisajul din scenă dacă există** (`Room3D.HasEditableLandscape`); altfel îl construiește
+  din cod, ca până acum. Deci nimic nu se schimbă până nu rulezi comanda.
+- **Aspectul separat de obiecte**: `EnvironmentBuilder.Look(theme)` întoarce cerul, lumina, ceața și sunetul
+  fără să construiască nimic, iar `Room3D.ApplyLook` le aplică (și din editor, pentru previzualizare).
+- `WorldFactory.Remove`: ștergere care funcționează și în editor (unde `Destroy` nu e permis).
+
+**Verificare:** tot codul compilează (verificat separat, cu compilatorul .NET). **Nu a fost rulat în
+Unity**: editorul era deschis, deci verificarea automată nu a putut porni. Comanda de construire rulează în
+editor cod scris pentru joc, deci prima rulare trebuie urmărită în Console.
+
+---
+
 ## 13 noiembrie 2026 (a șasea rundă) – decor pus de mână
 
 Cerință: cum pot fi modificate de mână lucruri în scenă (poziții, obiecte noi).

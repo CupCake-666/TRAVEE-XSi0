@@ -3,6 +3,8 @@
     "rootNamespace": "Travee.TicTacToe.Editor",
     "references": [
         "Travee.TicTacToe",
+        "Travee.TicTacToe.Core",
+        "UnityEngine.UI",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.Universal.Runtime"
     ],

@@ -1,5 +1,7 @@
 # 08 – Personajul AI: OpponentAnimations, OpponentCharacter
 
+> **Actualizare:** personajul poate fi un obiect din scenă (`Personaj`), pornit cu `Attach(...)`; constantele `WalkSpeed`, `WaveDuration`, `TargetPreview`, `GazeAngle` au devenit câmpuri în Inspector (`walkSpeed`, `waveDuration`, `targetPreview`, `gazeAngle`), alături de `placement`, `height`, `growToReachBoard` și `reach`. Vezi `Docs/Cum_modific_scena.md`.
+
 Fișierele din `Assets/Scripts/Game/Characters/`. Recitește înainte secțiunea 4.4 din `00_Introducere`
 (Animator, Humanoid, IK). Personajul implementează `IOpponentPresenter` (vezi `04`).
 

@@ -7,10 +7,10 @@ namespace Travee.TicTacToe.Core.AI
     {
         DifficultyLevel Level { get; }
 
-        /// <summary>Apelat la începutul fiecărui meci (resetează starea internă, dacă există).</summary>
+        /// <summary>Apelat la inceputul fiecarui meci (reseteaza starea interna, daca exista).</summary>
         void OnNewGame();
 
-        /// <summary>Alege celula în care mută AI-ul. Tabla poate fi modificată temporar, dar e lăsată neschimbată.</summary>
+        /// <summary>Alege celula in care muta AI-ul. Tabla poate fi modificata temporar, dar e lasata neschimbata.</summary>
         int ChooseMove(Board board, Mark aiMark);
     }
 
@@ -33,8 +33,8 @@ namespace Travee.TicTacToe.Core.AI
         public static T Pick<T>(IList<T> items, Random rng) => items[rng.Next(items.Count)];
 
         /// <summary>
-        /// +1 pentru coloana de pe partea sănătoasă, -1 pentru coloana de pe partea afectată, 0 pentru mijloc.
-        /// Coloanele sunt văzute din perspectiva pacientului (coloana 0 = stânga lui).
+        /// +1 pentru coloana de pe partea sanatoasa, -1 pentru coloana de pe partea afectata, 0 pentru mijloc.
+        /// Coloanele sunt vazute din perspectiva pacientului (coloana 0 = stanga lui).
         /// </summary>
         public static int HealthySideScore(int cell, AffectedSide side)
         {

@@ -3,27 +3,28 @@ using UnityEngine.Rendering;
 
 namespace Travee.TicTacToe.World
 {
-    /// <summary>Cum arată cerul unui peisaj: culorile gradientului, plus (opțional) stele și lună.</summary>
+    /// <summary>Cum arata cerul unui peisaj: culorile gradientului, plus (optional) stele si luna.</summary>
+    [System.Serializable]
     public struct SkySettings
     {
         public Color Zenith;        // culoarea de sus
-        public Color Horizon;       // culoarea de la orizont (și a ceții)
+        public Color Horizon;       // culoarea de la orizont (si a cetii)
         public Color Ground;        // culoarea de sub orizont
-        public int Stars;           // câte stele (0 = zi)
-        public Vector3 MoonDirection;   // spre lună, din ochii pacientului (zero = fără lună)
+        public int Stars;           // cate stele (0 = zi)
+        public Vector3 MoonDirection;   // spre luna, din ochii pacientului (zero = fara luna)
 
-        // Varianta fotografică: o panoramă 360° din bibliotecă. Dacă lipsește, cerul se desenează din cod.
+        // Varianta fotografica: o panorama 360° din biblioteca. Daca lipseste, cerul se deseneaza din cod.
         public string Panorama;         // numele imaginii din Assets/Art/Sky
         public float Exposure;          // luminozitatea (1 = cum e fotografia)
-        public float Rotation;          // grade: rotește panorama în jurul pacientului
-        public Color Tint;              // nuanță; negru (nesetat) = neutru
+        public float Rotation;          // grade: roteste panorama in jurul pacientului
+        public Color Tint;              // nuanta; negru (nesetat) = neutru
     }
 
     /// <summary>
-    /// Cerul e o singură imagine „panoramică” (ca o hartă a lumii: lățime = 360° în jur, înălțime = de jos până
-    /// sus), pusă pe un material Skybox/Panoramic. Imaginea e fie o fotografie 360° din bibliotecă
-    /// (<see cref="SkySettings.Panorama"/>), fie – dacă fotografia lipsește – una desenată din cod pixel cu pixel
-    /// (gradient, stele, lună).
+    /// Cerul e o singura imagine „panoramica” (ca o harta a lumii: latime = 360° in jur, inaltime = de jos pana
+    /// sus), pusa pe un material Skybox/Panoramic. Imaginea e fie o fotografie 360° din biblioteca
+    /// (<see cref="SkySettings.Panorama"/>), fie – daca fotografia lipseste – una desenata din cod pixel cu pixel
+    /// (gradient, stele, luna).
     /// </summary>
     public static class Sky
     {
@@ -34,8 +35,8 @@ namespace Travee.TicTacToe.World
         static Texture2D texture;
         static Material material;
 
-        /// <summary>Desenează cerul și îl setează ca fundal al scenei. Fără material: fundal într-o singură culoare.</summary>
-        static readonly Color NeutralTint = new Color(0.5f, 0.5f, 0.5f);    // valoarea „fără nuanță” a shader-ului
+        /// <summary>Deseneaza cerul si il seteaza ca fundal al scenei. Fara material: fundal intr-o singura culoare.</summary>
+        static readonly Color NeutralTint = new Color(0.5f, 0.5f, 0.5f);    // valoarea „fara nuanta” a shader-ului
 
         public static void Apply(Material skyTemplate, Camera camera, SkySettings sky, Texture2D panorama = null)
         {
@@ -51,7 +52,7 @@ namespace Travee.TicTacToe.World
 
             if (panorama != null)
             {
-                // Fotografie 360°: o punem direct pe material și îi reglăm luminozitatea, rotația și nuanța.
+                // Fotografie 360°: o punem direct pe material si ii reglam luminozitatea, rotatia si nuanta.
                 material.mainTexture = panorama;
                 material.SetFloat("_Exposure", sky.Exposure > 0f ? sky.Exposure : 1f);
                 material.SetFloat("_Rotation", sky.Rotation);
@@ -64,7 +65,7 @@ namespace Travee.TicTacToe.World
                     texture = new Texture2D(Width, Height, TextureFormat.RGB24, false)
                     {
                         name = "SkyTexture",
-                        wrapModeU = TextureWrapMode.Repeat,     // imaginea se închide în cerc, pe orizontală
+                        wrapModeU = TextureWrapMode.Repeat,     // imaginea se inchide in cerc, pe orizontala
                         wrapModeV = TextureWrapMode.Clamp,
                     };
                 }
@@ -90,7 +91,7 @@ namespace Travee.TicTacToe.World
             float cosDisc = Mathf.Cos(MoonRadius * Mathf.Deg2Rad);
             float cosHalo = Mathf.Cos(MoonHalo * Mathf.Deg2Rad);
 
-            // Coloana → unghiul în jur (longitudine). Formula e inversa celei din shader-ul Skybox/Panoramic.
+            // Coloana → unghiul in jur (longitudine). Formula e inversa celei din shader-ul Skybox/Panoramic.
             var cosLon = new float[Width];
             var sinLon = new float[Width];
             for (int x = 0; x < Width; x++)
@@ -102,7 +103,7 @@ namespace Travee.TicTacToe.World
 
             for (int y = 0; y < Height; y++)
             {
-                float v = (y + 0.5f) / Height;              // 0 = drept în jos, 0,5 = orizont, 1 = drept în sus
+                float v = (y + 0.5f) / Height;              // 0 = drept in jos, 0,5 = orizont, 1 = drept in sus
                 float lat = (v - 0.5f) * Mathf.PI;
                 float cosLat = Mathf.Cos(lat), sinLat = Mathf.Sin(lat);
 
@@ -119,7 +120,7 @@ namespace Travee.TicTacToe.World
                         continue;
                     }
 
-                    // Cât de aproape e direcția acestui pixel de direcția lunii (produs scalar = cosinusul unghiului).
+                    // Cat de aproape e directia acestui pixel de directia lunii (produs scalar = cosinusul unghiului).
                     float dot = cosLon[x] * cosLat * moonDir.x + sinLat * moonDir.y + sinLon[x] * cosLat * moonDir.z;
                     if (dot < cosHalo)
                     {
@@ -141,14 +142,14 @@ namespace Travee.TicTacToe.World
             return pixels;
         }
 
-        /// <summary>Stele: puncte albe la poziții aleatoare deasupra orizontului; cele mari au și o „cruce” palidă.</summary>
+        /// <summary>Stele: puncte albe la pozitii aleatoare deasupra orizontului; cele mari au si o „cruce” palida.</summary>
         static void PaintStars(Color32[] pixels, int count)
         {
-            var rng = new System.Random(7);     // aceeași sămânță → același cer de fiecare dată
+            var rng = new System.Random(7);     // aceeasi samanta → acelasi cer de fiecare data
             for (int i = 0; i < count; i++)
             {
                 int x = rng.Next(Width);
-                // Între 3° și 80° deasupra orizontului (mai sus imaginea panoramică deformează punctele).
+                // Intre 3° si 80° deasupra orizontului (mai sus imaginea panoramica deformeaza punctele).
                 float elevation = Mathf.Lerp(3f, 80f, (float)rng.NextDouble());
                 int y = Mathf.Clamp((int)((0.5f + elevation / 180f) * Height), 0, Height - 1);
                 float brightness = Mathf.Lerp(0.45f, 1f, (float)rng.NextDouble());

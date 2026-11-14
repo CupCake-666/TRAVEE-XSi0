@@ -10,16 +10,16 @@ using UnityEngine.InputSystem;
 
 namespace Travee.TicTacToe.World
 {
-    /// <summary>Marchează un collider ca fiind căsuța cu indexul dat.</summary>
+    /// <summary>Marcheaza un collider ca fiind casuta cu indexul dat.</summary>
     public sealed class BoardCell : MonoBehaviour
     {
         public int Index;
     }
 
     /// <summary>
-    /// Tabla 3D care plutește în fața pacientului. Este și sursa de input pentru mouse: o rază din cameră
-    /// prin cursor (raycast) găsește căsuța. În VR, aceleași collidere vor fi atinse de mână.
-    /// Când personajul vine în spatele ei, tabla devine semi-transparentă (<see cref="SetSeeThrough"/>).
+    /// Tabla 3D care pluteste in fata pacientului. Este si sursa de input pentru mouse: o raza din camera
+    /// prin cursor (raycast) gaseste casuta. In VR, aceleasi collidere vor fi atinse de mana.
+    /// Cand personajul vine in spatele ei, tabla devine semi-transparenta (<see cref="SetSeeThrough"/>).
     /// </summary>
     public sealed class Board3DView : MonoBehaviour, IBoardView, ICellInputSource
     {
@@ -27,14 +27,14 @@ namespace Travee.TicTacToe.World
         const float Gap = 0.012f;
         const float TileHeight = 0.012f;
         const float SeeThroughAlpha = 0.3f;
-        const float FadeSpeed = 3f;       // cât de repede se schimbă transparența (alpha pe secundă)
-        const float PlateHeight = 0.02f;  // grosimea plăcii de sub căsuțe
-        const float TargetPulse = 6f;     // viteza pulsației căsuței alese de AI
+        const float FadeSpeed = 3f;       // cat de repede se schimba transparenta (alpha pe secunda)
+        const float PlateHeight = 0.02f;  // grosimea placii de sub casute
+        const float TargetPulse = 6f;     // viteza pulsatiei casutei alese de AI
 
         static readonly Color BaseColor = new Color(0.24f, 0.20f, 0.17f);
         static readonly Color TileColor = new Color(0.96f, 0.93f, 0.86f);
         static readonly Color HoverColor = new Color(1.00f, 0.86f, 0.55f);
-        static readonly Color TargetColor = new Color(0.93f, 0.20f, 0.18f);   // căsuța aleasă de AI
+        static readonly Color TargetColor = new Color(0.93f, 0.20f, 0.18f);   // casuta aleasa de AI
 
         readonly Renderer[] tiles = new Renderer[Board.CellCount];
         readonly Transform[] pieces = new Transform[Board.CellCount];
@@ -51,19 +51,19 @@ namespace Travee.TicTacToe.World
 
         public bool InputEnabled { get; set; }
 
-        /// <summary>Poziția din lume a centrului căsuței (personajul își duce mâna acolo).</summary>
+        /// <summary>Pozitia din lume a centrului casutei (personajul isi duce mana acolo).</summary>
         public Vector3 CellWorldPosition(int cell) =>
             tiles[cell].transform.position + transform.up * (TileHeight / 2f);
 
         /// <summary>
-        /// Punctul de pe SPATELE tablei din dreptul căsuței: acolo atinge personajul, care stă în spatele ei.
-        /// (lossyScale = scala din lume; tabla e mărită cu Room3D.BoardScale.)
+        /// Punctul de pe SPATELE tablei din dreptul casutei: acolo atinge personajul, care sta in spatele ei.
+        /// (lossyScale = scala din lume; tabla e marita cu Room3D.BoardScale.)
         /// </summary>
         public Vector3 CellBackPosition(int cell) =>
             tiles[cell].transform.position - transform.up * ((PlateHeight + TileHeight / 2f) * transform.lossyScale.y);
 
         /// <param name="seeThroughTemplate">
-        /// Material URP Lit transparent (creat de meniul TRAVEE). Fără el, tabla rămâne opacă.
+        /// Material URP Lit transparent (creat de meniul TRAVEE). Fara el, tabla ramane opaca.
         /// </param>
         public static Board3DView Create(Transform parent, Vector3 position, Quaternion rotation, Camera camera,
             Material seeThroughTemplate)
@@ -71,31 +71,60 @@ namespace Travee.TicTacToe.World
             var root = WorldFactory.Group("Board3D", parent, position);
             root.localRotation = rotation;
             var view = root.gameObject.AddComponent<Board3DView>();
-            view.cam = camera;
-            view.Build(seeThroughTemplate);
+            view.Init(camera, seeThroughTemplate);
             return view;
+        }
+
+        /// <summary>
+        /// Construieste placa si casutele sub acest obiect. Se apeleaza o data, la pornire. Daca tabla e un
+        /// obiect pus in scena („Tabla”), pozitia, rotatia si marimea ei sunt cele din Transform-ul lui.
+        /// </summary>
+        public void Init(Camera camera, Material seeThroughTemplate)
+        {
+            cam = camera;
+            Build(seeThroughTemplate);
+        }
+
+        /// <summary>
+        /// In editor tabla nu are inca obiecte (se construiesc la pornire), asa ca o desenam ca „gizmo”: placa
+        /// si cele noua casute, exact unde vor fi in joc. Gizmo-urile se vad doar in fereastra Scene.
+        /// </summary>
+        void OnDrawGizmos()
+        {
+            if (Application.isPlaying) return;
+            Gizmos.matrix = transform.localToWorldMatrix;       // desenam in coordonatele tablei
+            Gizmos.color = BaseColor;
+            Gizmos.DrawCube(new Vector3(0f, PlateHeight / 2f, 0f), new Vector3(BoardSize, PlateHeight, BoardSize));
+            Gizmos.color = TileColor;
+            float cell = (BoardSize - Gap * 4f) / Board.Size;
+            for (int i = 0; i < Board.CellCount; i++)
+            {
+                float x = -BoardSize / 2f + Gap + cell / 2f + Board.Column(i) * (cell + Gap);
+                float z = BoardSize / 2f - Gap - cell / 2f - Board.Row(i) * (cell + Gap);
+                Gizmos.DrawCube(new Vector3(x, PlateHeight + TileHeight / 2f, z), new Vector3(cell, TileHeight, cell));
+            }
         }
 
         void Build(Material template)
         {
             torus = WorldFactory.Torus(0.045f, 0.013f);
 
-            // Placa (render queue 3000) se desenează înaintea căsuțelor (3001), ca să nu le acopere când e transparentă.
+            // Placa (render queue 3000) se deseneaza inaintea casutelor (3001), ca sa nu le acopere cand e transparenta.
             var baseMaterial = BoardMaterial(template, BaseColor, 3000);
             tileMaterial = BoardMaterial(template, TileColor, 3001);
             hoverMaterial = BoardMaterial(template, HoverColor, 3001);
             winMaterial = BoardMaterial(template, Theme.CellWin, 3001);
-            // Căsuța AI-ului nu urmează transparența tablei: culoarea și alpha ei pulsează separat (UpdateTarget).
+            // Casuta AI-ului nu urmeaza transparenta tablei: culoarea si alpha ei pulseaza separat (UpdateTarget).
             targetMaterial = BoardMaterial(template, TargetColor, 3001, fades: false);
 
-            // Spațiile dintre căsuțe lasă să se vadă placa închisă la culoare: arată ca liniile grilei.
+            // Spatiile dintre casute lasa sa se vada placa inchisa la culoare: arata ca liniile grilei.
             var plate = WorldFactory.Box("Base", transform, new Vector3(0, PlateHeight / 2f, 0), new Vector3(BoardSize, PlateHeight, BoardSize), BaseColor);
             plate.GetComponent<Renderer>().sharedMaterial = baseMaterial;
 
             float cell = (BoardSize - Gap * 4f) / Board.Size;
             for (int i = 0; i < Board.CellCount; i++)
             {
-                // Coloana 0 = stânga pacientului (-X); rândul 0 = sus / cel mai departe de pacient (+Z), ca în 2D.
+                // Coloana 0 = stanga pacientului (-X); randul 0 = sus / cel mai departe de pacient (+Z), ca in 2D.
                 float x = -BoardSize / 2f + Gap + cell / 2f + Board.Column(i) * (cell + Gap);
                 float z = BoardSize / 2f - Gap - cell / 2f - Board.Row(i) * (cell + Gap);
 
@@ -107,7 +136,7 @@ namespace Travee.TicTacToe.World
             }
         }
 
-        /// <summary>Material propriu al tablei (nu cel partajat din WorldFactory), ca să-i putem schimba transparența.</summary>
+        /// <summary>Material propriu al tablei (nu cel partajat din WorldFactory), ca sa-i putem schimba transparenta.</summary>
         Material BoardMaterial(Material template, Color color, int renderQueue, bool fades = true)
         {
             var material = new Material(template != null ? template : WorldFactory.Material(color)) { color = color };
@@ -119,12 +148,12 @@ namespace Travee.TicTacToe.World
             return material;
         }
 
-        /// <summary>Tabla devine semi-transparentă (true) sau revine opacă (false), treptat.</summary>
+        /// <summary>Tabla devine semi-transparenta (true) sau revine opaca (false), treptat.</summary>
         public void SetSeeThrough(bool seeThrough) => targetAlpha = seeThrough ? SeeThroughAlpha : 1f;
 
         /// <summary>
-        /// Marchează căsuța pe care urmează să o aleagă AI-ul cu un glow roșu care pulsează
-        /// (echivalentul hover-ului galben al pacientului). -1 = niciuna. Se șterge singur când apare piesa.
+        /// Marcheaza casuta pe care urmeaza sa o aleaga AI-ul cu un glow rosu care pulseaza
+        /// (echivalentul hover-ului galben al pacientului). -1 = niciuna. Se sterge singur cand apare piesa.
         /// </summary>
         public void SetAITarget(int cell)
         {
@@ -159,7 +188,7 @@ namespace Travee.TicTacToe.World
             }
         }
 
-        /// <summary>Pulsația căsuței AI-ului: culoarea trece între roșu deschis și roșu, iar alpha între 0,55 și 0,95.</summary>
+        /// <summary>Pulsatia casutei AI-ului: culoarea trece intre rosu deschis si rosu, iar alpha intre 0,55 si 0,95.</summary>
         void UpdateTarget()
         {
             if (aiTarget < 0) return;
@@ -172,13 +201,13 @@ namespace Travee.TicTacToe.World
         int CellUnderPointer()
         {
             if (cam == null || Mouse.current == null) return -1;
-            // Dacă mouse-ul e peste un element de UI (butonul "Meniu" etc.), nu selectăm prin el.
+            // Daca mouse-ul e peste un element de UI (butonul "Meniu" etc.), nu selectam prin el.
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return -1;
 
             var ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
             if (!Physics.Raycast(ray, out var hit, 10f)) return -1;
             var boardCell = hit.collider.GetComponent<BoardCell>();
-            if (boardCell == null || pieces[boardCell.Index] != null) return -1; // ocupată: fără hover
+            if (boardCell == null || pieces[boardCell.Index] != null) return -1; // ocupata: fara hover
             return boardCell.Index;
         }
 
@@ -249,7 +278,7 @@ namespace Travee.TicTacToe.World
             return o.transform;
         }
 
-        /// <summary>Piesa cade puțin de deasupra tablei și „sare” la mărimea finală (ease-out-back, ca în 2D).</summary>
+        /// <summary>Piesa cade putin de deasupra tablei si „sare” la marimea finala (ease-out-back, ca in 2D).</summary>
         static IEnumerator DropIn(Transform piece)
         {
             const float duration = 0.3f;
@@ -257,7 +286,7 @@ namespace Travee.TicTacToe.World
             var start = end + Vector3.up * 0.08f;
             for (float t = 0; t < duration; t += Time.deltaTime)
             {
-                if (piece == null) yield break;     // tabla a fost resetată între timp
+                if (piece == null) yield break;     // tabla a fost resetata intre timp
                 float k = t / duration;
                 float scale = Mathf.LerpUnclamped(0.3f, 1f, 1f + 2.7f * Mathf.Pow(k - 1f, 3) + 1.7f * Mathf.Pow(k - 1f, 2));
                 piece.localScale = Vector3.one * scale;

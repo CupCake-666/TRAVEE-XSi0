@@ -3,9 +3,9 @@ using System.Collections.Generic;
 namespace Travee.TicTacToe.Characters
 {
     /// <summary>
-    /// Legătura dintre „rolul” unei animații în joc și fișierul Mixamo din care vine.
-    /// Numele rolului e și numele stării din Animator Controller (generat de editor).
-    /// Ca să schimbi o animație: descarci alt FBX în Assets/Art/Character/Animations și îi pui numele aici.
+    /// Legatura dintre „rolul” unei animatii in joc si fisierul Mixamo din care vine.
+    /// Numele rolului e si numele starii din Animator Controller (generat de editor).
+    /// Ca sa schimbi o animatie: descarci alt FBX in Assets/Art/Character/Animations si ii pui numele aici.
     /// </summary>
     public static class OpponentAnimations
     {
@@ -21,7 +21,7 @@ namespace Travee.TicTacToe.Characters
         public const string Victory = "Victory";
         public const string Shrug = "Shrug";
 
-        /// <summary>Rol → numele fișierului FBX (fără extensie).</summary>
+        /// <summary>Rol → numele fisierului FBX (fara extensie).</summary>
         public static readonly IReadOnlyDictionary<string, string> Files = new Dictionary<string, string>
         {
             { Idle, "Happy Idle" },
@@ -38,12 +38,12 @@ namespace Travee.TicTacToe.Characters
         };
 
         /// <summary>
-        /// Variantele pentru „pune piesa” – se alege una la întâmplare, ca să nu fie repetitiv.
-        /// (Pointing arată în gol, așa că nu îl folosim; mâna e oricum dusă la căsuță prin IK.)
+        /// Variantele pentru „pune piesa” – se alege una la intamplare, ca sa nu fie repetitiv.
+        /// (Pointing arata in gol, asa ca nu il folosim; mana e oricum dusa la casuta prin IK.)
         /// </summary>
         public static readonly string[] PlaceVariants = { PlaceA, PlaceC };
 
-        /// <summary>În ce moment al animației (0..1) apare piesa pe tablă, pentru fiecare variantă.</summary>
+        /// <summary>In ce moment al animatiei (0..1) apare piesa pe tabla, pentru fiecare varianta.</summary>
         public static float PlaceHitTime(string role)
         {
             switch (role)

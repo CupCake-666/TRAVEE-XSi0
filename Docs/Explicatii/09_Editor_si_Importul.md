@@ -1,5 +1,7 @@
 # 09 – Editor: SceneSetup.cs și CharacterImportSettings.cs
 
+> **Actualizare:** `Editor/WorldBaker.cs` (meniul **TRAVEE → Scena editabilă**) pune în scenă camera, tabla, personajul, peisajele, luminile și setările lor. Animator Controller-ul nu mai e regenerat automat. Vezi `Docs/Cum_modific_scena.md`.
+
 Fișierele din `Assets/Scripts/Editor/`. Rulează **doar în editorul Unity**, nu ajung în aplicația finală
 (asmdef-ul lor are `includePlatforms: ["Editor"]`). Ele pregătesc proiectul ca să nu fie nevoie de setări
 manuale în Inspector.

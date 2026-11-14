@@ -10,8 +10,8 @@ namespace Travee.TicTacToe
 {
     /// <summary>
     /// Fluxul jocului: Meniu → Coin flip → Meci (pacient vs AI) → Rezultat.
-    /// Nu știe nimic despre mouse, VR, 2D sau 3D: primește selecțiile prin <see cref="ICellInputSource"/>,
-    /// afișează tabla prin <see cref="IBoardView"/> și „joacă” personajul AI prin <see cref="IOpponentPresenter"/>.
+    /// Nu stie nimic despre mouse, VR, 2D sau 3D: primeste selectiile prin <see cref="ICellInputSource"/>,
+    /// afiseaza tabla prin <see cref="IBoardView"/> si „joaca” personajul AI prin <see cref="IOpponentPresenter"/>.
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
@@ -163,7 +163,7 @@ namespace Travee.TicTacToe
             match.Play(cell);
             var move = match.Moves[match.Moves.Count - 1];
             board.SetMark(cell, move.Mark);
-            // reactionMs există doar pentru mutările pacientului: așa știm al cui sunet să redăm.
+            // reactionMs exista doar pentru mutarile pacientului: asa stim al cui sunet sa redam.
             Sfx.Play(reactionMs.HasValue ? Sound.PlacePatient : Sound.PlaceAI);
             logger?.LogMove(move, reactionMs);
         }
@@ -171,7 +171,7 @@ namespace Travee.TicTacToe
         void OnCellSelected(int cell)
         {
             if (!awaitingPatient || match == null || !match.IsPatientTurn) return;
-            if (!match.Board.IsEmpty(cell)) return; // căsuță ocupată: ignorăm, pacientul mai încearcă
+            if (!match.Board.IsEmpty(cell)) return; // casuta ocupata: ignoram, pacientul mai incearca
             selectedCell = cell;
         }
 
@@ -202,7 +202,7 @@ namespace Travee.TicTacToe
                     result.Show("Felicitări, ai câștigat!", "Ai jucat excelent.", Theme.X);
                     break;
                 case MatchOutcome.Draw when gentleLevel:
-                    // La nivelurile 1-2 remiza e prezentată tot ca un succes.
+                    // La nivelurile 1-2 remiza e prezentata tot ca un succes.
                     Sfx.Play(Sound.Win);
                     result.Show("Bravo, ai jucat foarte bine!", "Ai fost foarte aproape de victorie – mai încearcă o dată!", Theme.X);
                     break;
@@ -219,7 +219,7 @@ namespace Travee.TicTacToe
             }
         }
 
-        /// <summary>Nivelurile 1-2: remiza e prezentată ca un succes.</summary>
+        /// <summary>Nivelurile 1-2: remiza e prezentata ca un succes.</summary>
         static bool IsGentle(DifficultyLevel level) =>
             level == DifficultyLevel.Level1 || level == DifficultyLevel.Level2;
     }

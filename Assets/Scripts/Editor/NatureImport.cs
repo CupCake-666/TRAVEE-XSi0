@@ -7,10 +7,10 @@ using UnityEngine.Rendering;
 namespace Travee.TicTacToe.Editor
 {
     /// <summary>
-    /// Pregătește asset-urile peisajelor: materialele modelelor din Assets/Art/Nature și setările de import ale
-    /// panoramelor de cer. Modelele Quaternius vin fără materiale gata făcute pentru URP: în fișierul FBX e doar
-    /// NUMELE materialului (ex. „Leaves_NormalTree”). Aici creăm câte un material URP cu acel nume, îi punem
-    /// textura potrivită și îi spunem importatorului să-l folosească.
+    /// Pregateste asset-urile peisajelor: materialele modelelor din Assets/Art/Nature si setarile de import ale
+    /// panoramelor de cer. Modelele Quaternius vin fara materiale gata facute pentru URP: in fisierul FBX e doar
+    /// NUMELE materialului (ex. „Leaves_NormalTree”). Aici cream cate un material URP cu acel nume, ii punem
+    /// textura potrivita si ii spunem importatorului sa-l foloseasca.
     /// </summary>
     public static class NatureImport
     {
@@ -19,12 +19,12 @@ namespace Travee.TicTacToe.Editor
         const string TexturesFolder = NatureFolder + "/Textures";
         const string MaterialsFolder = NatureFolder + "/Materials";
 
-        /// <summary>Cum se face un material: numele din FBX, textura, (opțional) normal map și dacă e „decupat”.</summary>
+        /// <summary>Cum se face un material: numele din FBX, textura, (optional) normal map si daca e „decupat”.</summary>
         struct Recipe
         {
             public string Name, Texture, Normal;
-            public bool Cutout;         // frunze: pixelii transparenți ai texturii nu se desenează
-            public bool DoubleSided;    // plante subțiri: se văd din ambele părți
+            public bool Cutout;         // frunze: pixelii transparenti ai texturii nu se deseneaza
+            public bool DoubleSided;    // plante subtiri: se vad din ambele parti
         }
 
         static readonly Recipe[] Recipes =
@@ -42,7 +42,7 @@ namespace Travee.TicTacToe.Editor
             new Recipe { Name = "Rocks", Texture = "Rocks_Diffuse" },
         };
 
-        /// <summary>Rulează toți pașii. Se poate apela de oricâte ori: ce există deja nu se reface.</summary>
+        /// <summary>Ruleaza toti pasii. Se poate apela de oricate ori: ce exista deja nu se reface.</summary>
         public static void Setup()
         {
             ConfigureNormalMaps();
@@ -51,7 +51,7 @@ namespace Travee.TicTacToe.Editor
             RemapModels(force: created);
         }
 
-        /// <summary>Texturile „_Normal” trebuie importate ca Normal Map, altfel relieful scoarței iese greșit.</summary>
+        /// <summary>Texturile „_Normal” trebuie importate ca Normal Map, altfel relieful scoartei iese gresit.</summary>
         static void ConfigureNormalMaps()
         {
             if (!AssetDatabase.IsValidFolder(TexturesFolder)) return;
@@ -67,8 +67,8 @@ namespace Travee.TicTacToe.Editor
         }
 
         /// <summary>
-        /// Panoramele de cer sunt imagini mari (până la 8192 px). Unity le-ar micșora implicit la 2048 px și
-        /// cerul ar ieși neclar, așa că ridicăm limita și oprim mipmap-urile (cerul e mereu „la aceeași distanță”).
+        /// Panoramele de cer sunt imagini mari (pana la 8192 px). Unity le-ar micsora implicit la 2048 px si
+        /// cerul ar iesi neclar, asa ca ridicam limita si oprim mipmap-urile (cerul e mereu „la aceeasi distanta”).
         /// </summary>
         static void ConfigureSkyTextures()
         {
@@ -79,7 +79,7 @@ namespace Travee.TicTacToe.Editor
                 if (importer.maxTextureSize == 8192 && !importer.mipmapEnabled) continue;
                 importer.maxTextureSize = 8192;
                 importer.mipmapEnabled = false;
-                importer.wrapModeU = TextureWrapMode.Repeat;    // panorama se închide în cerc
+                importer.wrapModeU = TextureWrapMode.Repeat;    // panorama se inchide in cerc
                 importer.wrapModeV = TextureWrapMode.Clamp;
                 importer.textureCompression = TextureImporterCompression.CompressedHQ;
                 importer.SaveAndReimport();
@@ -107,7 +107,7 @@ namespace Travee.TicTacToe.Editor
 
                 var material = new Material(shader) { name = recipe.Name };
                 material.SetTexture("_BaseMap", texture);
-                material.SetFloat("_Smoothness", 0.05f);            // natură mată, fără luciu
+                material.SetFloat("_Smoothness", 0.05f);            // natura mata, fara luciu
                 if (!string.IsNullOrEmpty(recipe.Normal))
                 {
                     var normal = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TexturesFolder}/{recipe.Normal}.png");
@@ -120,7 +120,7 @@ namespace Travee.TicTacToe.Editor
                 if (recipe.Cutout)
                 {
                     material.SetFloat("_AlphaClip", 1f);            // „Alpha Clipping” din Inspector
-                    material.SetFloat("_Cutoff", 0.4f);             // pixelii cu alpha sub 0,4 nu se desenează
+                    material.SetFloat("_Cutoff", 0.4f);             // pixelii cu alpha sub 0,4 nu se deseneaza
                     material.EnableKeyword("_ALPHATEST_ON");
                     material.SetOverrideTag("RenderType", "TransparentCutout");
                     material.renderQueue = (int)RenderQueue.AlphaTest;
@@ -135,8 +135,8 @@ namespace Travee.TicTacToe.Editor
         }
 
         /// <summary>
-        /// Spune fiecărui model să-și caute materialele după nume în folderul „Materials” de lângă el.
-        /// Materialele negăsite (ex. culorile simple ale palmierilor) rămân cele din fișierul FBX.
+        /// Spune fiecarui model sa-si caute materialele dupa nume in folderul „Materials” de langa el.
+        /// Materialele negasite (ex. culorile simple ale palmierilor) raman cele din fisierul FBX.
         /// </summary>
         static void RemapModels(bool force)
         {

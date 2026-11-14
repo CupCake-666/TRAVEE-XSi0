@@ -3,15 +3,15 @@ using System;
 namespace Travee.TicTacToe
 {
     /// <summary>
-    /// Orice sursă care poate selecta o căsuță de pe tablă: click de mouse / touch acum,
-    /// atingerea cu mâna în VR mai târziu. GameController ascultă toate sursele înregistrate.
+    /// Orice sursa care poate selecta o casuta de pe tabla: click de mouse / touch acum,
+    /// atingerea cu mana in VR mai tarziu. GameController asculta toate sursele inregistrate.
     /// </summary>
     public interface ICellInputSource
     {
-        /// <summary>Emis cu indexul căsuței (0..8) atunci când pacientul o selectează.</summary>
+        /// <summary>Emis cu indexul casutei (0..8) atunci cand pacientul o selecteaza.</summary>
         event Action<int> CellSelected;
 
-        /// <summary>Activat de GameController doar cât timp e rândul pacientului.</summary>
+        /// <summary>Activat de GameController doar cat timp e randul pacientului.</summary>
         bool InputEnabled { get; set; }
     }
 }

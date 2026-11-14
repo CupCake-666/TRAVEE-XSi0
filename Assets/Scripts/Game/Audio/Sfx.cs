@@ -3,31 +3,31 @@ using UnityEngine;
 
 namespace Travee.TicTacToe.Audio
 {
-    /// <summary>Evenimentele din joc care au sunet. Fișierele din spatele lor sunt în <see cref="Sfx"/>.</summary>
+    /// <summary>Evenimentele din joc care au sunet. Fisierele din spatele lor sunt in <see cref="Sfx"/>.</summary>
     public enum Sound
     {
         Click,          // buton de UI
-        Hover,          // cursorul (mai târziu: mâna) ajunge pe o căsuță liberă
+        Hover,          // cursorul (mai tarziu: mana) ajunge pe o casuta libera
         PlacePatient,   // pacientul pune piesa
         PlaceAI,        // AI-ul pune piesa
-        Target,         // AI-ul își arată căsuța aleasă (glow roșu)
-        CoinTick,       // moneda se întoarce
+        Target,         // AI-ul isi arata casuta aleasa (glow rosu)
+        CoinTick,       // moneda se intoarce
         CoinResult,     // moneda s-a oprit
-        Win,            // pacientul a câștigat (sau remiză la nivelurile blânde)
+        Win,            // pacientul a castigat (sau remiza la nivelurile blande)
         Draw,
         Lose,
-        Footstep,       // pașii personajului
-        Applause,       // personajul aplaudă victoria pacientului
+        Footstep,       // pasii personajului
+        Applause,       // personajul aplauda victoria pacientului
     }
 
     /// <summary>
-    /// Toate sunetele jocului. Se apelează static, de oriunde: <c>Sfx.Play(Sound.Click)</c>.
-    /// Dacă nu a fost creat (ex. scena 2D, fără bibliotecă de asset-uri), apelurile nu fac nimic.
-    /// Are o sursă audio pentru efecte scurte, una pentru efecte lungi (aplauze) și două pentru ambianță (ca să poată trece lin de la una la alta).
+    /// Toate sunetele jocului. Se apeleaza static, de oriunde: <c>Sfx.Play(Sound.Click)</c>.
+    /// Daca nu a fost creat (ex. scena 2D, fara biblioteca de asset-uri), apelurile nu fac nimic.
+    /// Are o sursa audio pentru efecte scurte, una pentru efecte lungi (aplauze) si doua pentru ambianta (ca sa poata trece lin de la una la alta).
     /// </summary>
     public sealed class Sfx : MonoBehaviour
     {
-        /// <summary>Sunet → fișierele din Assets/Audio/Sfx (fără extensie). Mai multe = se alege unul la întâmplare.</summary>
+        /// <summary>Sunet → fisierele din Assets/Audio/Sfx (fara extensie). Mai multe = se alege unul la intamplare.</summary>
         static readonly Dictionary<Sound, string[]> Files = new Dictionary<Sound, string[]>
         {
             { Sound.Click, new[] { "click_001" } },
@@ -44,15 +44,15 @@ namespace Travee.TicTacToe.Audio
             { Sound.Applause, new[] { "applause" } },
         };
 
-        const float AmbientFade = 2f;       // secunde pentru trecerea de la o ambianță la alta și pentru reluare
+        const float AmbientFade = 2f;       // secunde pentru trecerea de la o ambianta la alta si pentru reluare
 
         static Sfx instance;
 
         GameAssets assets;
         AudioSource effects, longEffect;
         readonly AudioSource[] ambient = new AudioSource[2];
-        readonly float[] ambientTarget = new float[2];     // volumul spre care se îndreaptă fiecare sursă
-        int current;                                        // sursa de ambianță „activă”
+        readonly float[] ambientTarget = new float[2];     // volumul spre care se indreapta fiecare sursa
+        int current;                                        // sursa de ambianta „activa”
         float effectsVolume, ambientVolume;
 
         public static Sfx Create(Transform parent, GameAssets assets, float effectsVolume, float ambientVolume)
@@ -75,7 +75,7 @@ namespace Travee.TicTacToe.Audio
                 sfx.ambient[i].volume = 0f;
             }
 
-            // Sunetul are nevoie de „urechi”: un AudioListener, de obicei pe cameră (în VR: capul pacientului).
+            // Sunetul are nevoie de „urechi”: un AudioListener, de obicei pe camera (in VR: capul pacientului).
             if (FindAnyObjectByType<AudioListener>() == null && Camera.main != null)
                 Camera.main.gameObject.AddComponent<AudioListener>();
 
@@ -88,7 +88,7 @@ namespace Travee.TicTacToe.Audio
             if (instance == this) instance = null;
         }
 
-        /// <summary>Efect 2D (se aude la fel indiferent unde te uiți): UI, piese, rezultat.</summary>
+        /// <summary>Efect 2D (se aude la fel indiferent unde te uiti): UI, piese, rezultat.</summary>
         public static void Play(Sound sound, float volume = 1f)
         {
             if (instance == null) return;
@@ -97,8 +97,8 @@ namespace Travee.TicTacToe.Audio
         }
 
         /// <summary>
-        /// Efect lung (aplauzele), pe o sursă separată, ca să poată fi oprit cu <see cref="StopLong"/> când
-        /// jucătorul pleacă de pe ecranul de rezultat. (PlayOneShot nu poate fi oprit la jumătate.)
+        /// Efect lung (aplauzele), pe o sursa separata, ca sa poata fi oprit cu <see cref="StopLong"/> cand
+        /// jucatorul pleaca de pe ecranul de rezultat. (PlayOneShot nu poate fi oprit la jumatate.)
         /// </summary>
         public static void PlayLong(Sound sound, float volume = 1f)
         {
@@ -115,7 +115,7 @@ namespace Travee.TicTacToe.Audio
             if (instance != null) instance.longEffect.Stop();
         }
 
-        /// <summary>Efect 3D: se aude din direcția <paramref name="position"/> (în VR, din partea personajului).</summary>
+        /// <summary>Efect 3D: se aude din directia <paramref name="position"/> (in VR, din partea personajului).</summary>
         public static void PlayAt(Sound sound, Vector3 position, float volume = 1f)
         {
             if (instance == null) return;
@@ -123,11 +123,17 @@ namespace Travee.TicTacToe.Audio
             if (clip != null) AudioSource.PlayClipAtPoint(clip, position, volume * instance.effectsVolume);
         }
 
-        /// <summary>Schimbă ambianța (păsări, greieri, valuri), cu trecere lină. <c>null</c> = liniște.</summary>
+        /// <summary>Schimba ambianta (pasari, greieri, valuri), cu trecere lina. <c>null</c> = liniste.</summary>
         public static void SetAmbient(string clipName)
         {
             if (instance == null) return;
-            var clip = string.IsNullOrEmpty(clipName) ? null : instance.assets.Clip(clipName);
+            SetAmbient(string.IsNullOrEmpty(clipName) ? null : instance.assets.Clip(clipName));
+        }
+
+        /// <summary>La fel, dar cu sunetul dat direct (cel ales in Inspector, in ThemeSettings).</summary>
+        public static void SetAmbient(AudioClip clip)
+        {
+            if (instance == null) return;
             if (clip == instance.ambient[instance.current].clip && instance.ambientTarget[instance.current] > 0f) return;
             instance.StartAmbient(clip);
         }
@@ -138,7 +144,7 @@ namespace Travee.TicTacToe.Audio
             return assets.Clip(names[Random.Range(0, names.Length)]);
         }
 
-        /// <summary>Sursa activă se stinge, iar cealaltă pornește clipul de la început și crește în volum.</summary>
+        /// <summary>Sursa activa se stinge, iar cealalta porneste clipul de la inceput si creste in volum.</summary>
         void StartAmbient(AudioClip clip)
         {
             ambientTarget[current] = 0f;
@@ -153,7 +159,7 @@ namespace Travee.TicTacToe.Audio
 
         void Update()
         {
-            // Volumele se apropie lin de țintele lor; o sursă ajunsă la zero se oprește.
+            // Volumele se apropie lin de tintele lor; o sursa ajunsa la zero se opreste.
             float step = ambientVolume / AmbientFade * Time.unscaledDeltaTime;
             for (int i = 0; i < ambient.Length; i++)
             {
@@ -161,8 +167,8 @@ namespace Travee.TicTacToe.Audio
                 if (ambient[i].isPlaying && ambient[i].volume <= 0f && ambientTarget[i] <= 0f) ambient[i].Stop();
             }
 
-            // Reluare fără „cusătură”: înregistrările nu sunt bucle perfecte, deci nu le lăsăm să ajungă la capăt.
-            // Cu AmbientFade secunde înainte de final, pornim același clip pe a doua sursă și le încrucișăm.
+            // Reluare fara „cusatura”: inregistrarile nu sunt bucle perfecte, deci nu le lasam sa ajunga la capat.
+            // Cu AmbientFade secunde inainte de final, pornim acelasi clip pe a doua sursa si le incrucisam.
             var active = ambient[current];
             if (ambientTarget[current] > 0f && active.clip != null && active.clip.length > AmbientFade * 3f &&
                 active.time >= active.clip.length - AmbientFade)

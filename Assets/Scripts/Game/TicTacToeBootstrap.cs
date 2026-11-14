@@ -13,8 +13,8 @@ namespace Travee.TicTacToe
     public enum ViewMode { TwoD, ThreeD }
 
     /// <summary>
-    /// Singurul component care trebuie pus în scenă: construiește din cod UI-ul, (în 3D) peisajul cu tabla
-    /// și personajul, sunetele, apoi controller-ul. Parametrii de terapie / dificultate sunt aici, în Inspector.
+    /// Singurul component care trebuie pus in scena: construieste din cod UI-ul, (in 3D) peisajul cu tabla
+    /// si personajul, sunetele, apoi controller-ul. Parametrii de terapie / dificultate sunt aici, in Inspector.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class TicTacToeBootstrap : MonoBehaviour
@@ -26,7 +26,7 @@ namespace Travee.TicTacToe
         GameObject opponentModel;
         [SerializeField, Tooltip("Animator Controller-ul generat de meniul TRAVEE. Doar pentru 3D.")]
         RuntimeAnimatorController opponentAnimator;
-        [SerializeField, Tooltip("Unde stă personajul când așteaptă. Doar pentru 3D.")]
+        [SerializeField, Tooltip("Unde stă personajul când așteaptă. Folosit doar dacă personajul NU e în scenă (altfel: setarea de pe obiectul „Personaj”).")]
         OpponentPlacement opponentPlacement = OpponentPlacement.AffectedSide;
         [SerializeField, Tooltip("Material URP transparent (creat de meniul TRAVEE), pentru tabla care devine transparentă.")]
         Material boardSeeThroughMaterial;
@@ -66,7 +66,7 @@ namespace Travee.TicTacToe
         [SerializeField, Tooltip("0 = aleator. O valoare fixă face meciurile reproductibile.")]
         int randomSeed;
 
-        const string ThemeKey = "travee.xsi0.theme";    // cheia sub care ținem minte peisajul ales
+        const string ThemeKey = "travee.xsi0.theme";    // cheia sub care tinem minte peisajul ales
 
         void Awake()
         {
@@ -74,27 +74,64 @@ namespace Travee.TicTacToe
 
             EnsureEventSystem();
             if (assets != null) Sfx.Create(transform, assets, effectsVolume, ambientVolume);
-            var canvas = CreateCanvas();
+            // Interfata: daca cele patru ecrane sunt in scena (puse din editor), le folosim pe acelea si le legam
+            // doar butoanele de logica. Altfel le construim acum, din cod.
+            var game = FindAnyObjectByType<GameScreen>(FindObjectsInactive.Include);
+            var coinFlip = FindAnyObjectByType<CoinFlipScreen>(FindObjectsInactive.Include);
+            var result = FindAnyObjectByType<ResultScreen>(FindObjectsInactive.Include);
+            var menu = FindAnyObjectByType<MenuScreen>(FindObjectsInactive.Include);
+            if (game != null && coinFlip != null && result != null && menu != null)
+            {
+                game.Wire();
+                result.Wire();
+                menu.Wire();
+            }
+            else
+            {
+                if (game != null || coinFlip != null || result != null || menu != null)
+                    Debug.LogWarning("[TRAVEE] Interfața din scenă e incompletă (lipsește un ecran): o construiesc din cod. " +
+                                     "Rulează TRAVEE → Scena editabilă → 1. Pune totul în scenă.");
+                foreach (var stale in new MonoBehaviour[] { game, coinFlip, result, menu })
+                    if (stale != null) stale.gameObject.SetActive(false);
 
-            // Ordinea contează: ultimul creat e desenat deasupra.
-            var game = GameScreen.Create(canvas, withBoard: !is3D);
-            var coinFlip = CoinFlipScreen.Create(canvas);
-            var result = ResultScreen.Create(canvas, overScene: is3D);
-            var menu = MenuScreen.Create(canvas, overScene: is3D);
+                var canvas = UIFactory.CreateCanvas(transform);
+                // Ordinea conteaza: ultimul creat e desenat deasupra.
+                game = GameScreen.Create(canvas, withBoard: !is3D);
+                coinFlip = CoinFlipScreen.Create(canvas);
+                result = ResultScreen.Create(canvas, overScene: is3D);
+                menu = MenuScreen.Create(canvas, overScene: is3D);
+            }
 
             var controller = gameObject.AddComponent<GameController>();
             if (is3D)
             {
                 WorldFactory.Template = worldMaterial;
-                // PlayerPrefs = mic „registru” de setări păstrat între rulări (ca un fișier de config).
+                // PlayerPrefs = mic „registru” de setari pastrat intre rulari (ca un fisier de config).
                 int themeCount = System.Enum.GetValues(typeof(WorldTheme)).Length;
                 var theme = (WorldTheme)Mathf.Clamp(PlayerPrefs.GetInt(ThemeKey, (int)worldTheme), 0, themeCount - 1);
-                var room = Room3D.Build(transform, assets, theme, boardHeight, boardDistance);
-                room.Camera.gameObject.AddComponent<DesktopHeadLook>(); // în VR: capul pacientului
-                var board = Board3DView.Create(room.Root, room.BoardPosition, room.BoardRotation, room.Camera,
-                    boardSeeThroughMaterial);
-                board.transform.localScale = Vector3.one * Room3D.BoardScale;
-                var opponent = CreateOpponent(room, board);
+                // Tot ce exista deja in scena (pus din editor) e folosit ca atare; ce lipseste se creeaza din cod.
+                var board = FindAnyObjectByType<Board3DView>();            // obiectul „Tabla”
+                var sceneCamera = Camera.main;
+                bool cameraFromScene = sceneCamera != null && sceneCamera.GetComponent<DesktopHeadLook>() != null;
+                var boardPosition = board != null ? board.transform.position : new Vector3(0f, boardHeight, boardDistance);
+
+                var room = Room3D.Build(transform, assets, theme, boardPosition, cameraFromScene);
+                if (!cameraFromScene) room.Camera.gameObject.AddComponent<DesktopHeadLook>(); // in VR: capul pacientului
+
+                if (board != null)
+                {
+                    board.Init(room.Camera, boardSeeThroughMaterial);
+                }
+                else
+                {
+                    board = Board3DView.Create(room.Root, room.BoardPosition, Room3D.DefaultBoardRotation, room.Camera,
+                        boardSeeThroughMaterial);
+                    board.transform.localScale = Vector3.one * Room3D.BoardScale;
+                }
+
+                var opponent = FindAnyObjectByType<OpponentCharacter>();     // obiectul „Personaj”
+                if (opponent == null) opponent = CreateOpponent(room, board);
+                else if (!opponent.Attach(opponentAnimator, room, board)) opponent = null;
 
                 controller.Init(difficulty, affectedSide, aiMoveDelay, logData, randomSeed,
                     menu, coinFlip, game, result, board, opponent);
@@ -113,7 +150,7 @@ namespace Travee.TicTacToe
             }
         }
 
-        /// <summary>Butonul „Peisaj” din meniu: trece la următorul peisaj și îl ține minte pentru data viitoare.</summary>
+        /// <summary>Butonul „Peisaj” din meniu: trece la urmatorul peisaj si il tine minte pentru data viitoare.</summary>
         static void NextTheme(Room3D room, MenuScreen menu)
         {
             int count = System.Enum.GetValues(typeof(WorldTheme)).Length;
@@ -154,24 +191,6 @@ namespace Travee.TicTacToe
             if (FindAnyObjectByType<EventSystem>() != null) return;
             var go = new GameObject("EventSystem", typeof(EventSystem));
             go.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
-        }
-
-        Transform CreateCanvas()
-        {
-            var go = new GameObject("Canvas", typeof(RectTransform));
-            go.transform.SetParent(transform, false);
-
-            var canvas = go.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-            var scaler = go.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 1f; // scalează după înălțime: tabla rămâne mereu întreagă pe ecran
-
-            go.AddComponent<GraphicRaycaster>();
-            return go.transform;
         }
     }
 }

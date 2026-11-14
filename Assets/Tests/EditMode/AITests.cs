@@ -11,14 +11,14 @@ namespace Travee.TicTacToe.Tests
         const int Games = 3000;
         static readonly DifficultySettings Settings = new DifficultySettings();
 
-        // Modele simplificate de pacient folosite în simulări.
+        // Modele simplificate de pacient folosite in simulari.
         static int RandomPatient(Board b, Mark m, Random r)
         {
             var e = b.EmptyCells();
             return e[r.Next(e.Count)];
         }
 
-        /// <summary>Câștigă dacă poate, blochează dacă trebuie, altfel mută aleator.</summary>
+        /// <summary>Castiga daca poate, blocheaza daca trebuie, altfel muta aleator.</summary>
         static int BeginnerPatient(Board b, Mark m, Random r)
         {
             var e = b.EmptyCells();

@@ -1,5 +1,7 @@
 # 07 – Scena 3D: Room3D, WorldFactory, Board3DView, DesktopHeadLook
 
+> **Actualizare:** camera, tabla și locurile personajului pot fi acum obiecte din scenă (`Main Camera`, `Tabla`, `Loc_Stanga`, `Loc_Dreapta`), iar setările fiecărui peisaj stau în componenta `ThemeSettings`. `Room3D` folosește ce găsește în scenă și creează din cod doar ce lipsește. Vezi `Docs/Cum_modific_scena.md`.
+
 Fișierele din `Assets/Scripts/Game/World/` și `Game/Input/`. Recitește înainte secțiunea 4 din `00_Introducere`
 (poziții, rotații, materiale, raycast). Toate distanțele sunt în **metri**.
 

@@ -7,7 +7,7 @@ namespace Travee.TicTacToe.Core
 
     public enum BoardState { InProgress, XWins, OWins, Draw }
 
-    /// <summary>Partea corpului afectată de AVC (mâna paralizată).</summary>
+    /// <summary>Partea corpului afectata de AVC (mana paralizata).</summary>
     public enum AffectedSide { Left, Right }
 
     public static class MarkExtensions
@@ -34,11 +34,11 @@ namespace Travee.TicTacToe.Core
     }
 
     /// <summary>
-    /// Tabla 3x3. Celulele sunt indexate 0..8, rând cu rând:
+    /// Tabla 3x3. Celulele sunt indexate 0..8, rand cu rand:
     ///  0 | 1 | 2
     ///  3 | 4 | 5
     ///  6 | 7 | 8
-    /// X mută întotdeauna primul.
+    /// X muta intotdeauna primul.
     /// </summary>
     public sealed class Board
     {
@@ -47,7 +47,7 @@ namespace Travee.TicTacToe.Core
 
         public static readonly int[][] Lines =
         {
-            new[] { 0, 1, 2 }, new[] { 3, 4, 5 }, new[] { 6, 7, 8 }, // rânduri
+            new[] { 0, 1, 2 }, new[] { 3, 4, 5 }, new[] { 6, 7, 8 }, // randuri
             new[] { 0, 3, 6 }, new[] { 1, 4, 7 }, new[] { 2, 5, 8 }, // coloane
             new[] { 0, 4, 8 }, new[] { 2, 4, 6 },                     // diagonale
         };
@@ -82,7 +82,7 @@ namespace Travee.TicTacToe.Core
 
         public bool IsFull => EmptyCount == 0;
 
-        /// <summary>Cine urmează la mutare (X începe mereu).</summary>
+        /// <summary>Cine urmeaza la mutare (X incepe mereu).</summary>
         public Mark NextToMove => Count(Mark.X) == Count(Mark.O) ? Mark.X : Mark.O;
 
         public List<int> EmptyCells()
@@ -101,7 +101,7 @@ namespace Travee.TicTacToe.Core
             cells[cell] = mark;
         }
 
-        /// <summary>Folosit de algoritmii de căutare pentru a anula o mutare.</summary>
+        /// <summary>Folosit de algoritmii de cautare pentru a anula o mutare.</summary>
         public void Clear(int cell) => cells[cell] = Mark.None;
 
         public Mark Winner() => Winner(out _);
@@ -134,7 +134,7 @@ namespace Travee.TicTacToe.Core
 
         public bool IsGameOver => State != BoardState.InProgress;
 
-        /// <summary>Ar câștiga <paramref name="mark"/> imediat dacă ar pune în <paramref name="cell"/>?</summary>
+        /// <summary>Ar castiga <paramref name="mark"/> imediat daca ar pune in <paramref name="cell"/>?</summary>
         public bool IsWinningMove(int cell, Mark mark)
         {
             if (!IsEmpty(cell)) return false;
@@ -144,7 +144,7 @@ namespace Travee.TicTacToe.Core
             return wins;
         }
 
-        /// <summary>Codificare în baza 3, unică pentru fiecare configurație (folosită pentru memoizare).</summary>
+        /// <summary>Codificare in baza 3, unica pentru fiecare configuratie (folosita pentru memoizare).</summary>
         public int Key
         {
             get

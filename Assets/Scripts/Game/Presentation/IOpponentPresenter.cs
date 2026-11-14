@@ -6,37 +6,37 @@ using UnityEngine;
 namespace Travee.TicTacToe
 {
     /// <summary>
-    /// Cum "arată" AI-ul în timpul jocului. În 2D nu are corp (<see cref="NoOpponent"/>);
-    /// în 3D e personajul animat care vine la tablă.
+    /// Cum "arata" AI-ul in timpul jocului. In 2D nu are corp (<see cref="NoOpponent"/>);
+    /// in 3D e personajul animat care vine la tabla.
     /// </summary>
     public interface IOpponentPresenter
     {
-        /// <summary>Jucătorul e în meniu.</summary>
+        /// <summary>Jucatorul e in meniu.</summary>
         void OnMenu();
 
-        /// <summary>S-a schimbat partea afectată (personajul își poate schimba locul).</summary>
+        /// <summary>S-a schimbat partea afectata (personajul isi poate schimba locul).</summary>
         void OnAffectedSideChanged(AffectedSide side);
 
-        /// <summary>Începe un meci (după coin flip).</summary>
+        /// <summary>Incepe un meci (dupa coin flip).</summary>
         void OnMatchStart();
 
-        /// <summary>E rândul pacientului: AI-ul așteaptă.</summary>
+        /// <summary>E randul pacientului: AI-ul asteapta.</summary>
         void OnPatientTurn();
 
-        /// <summary>AI-ul "se gândește" cel puțin <paramref name="seconds"/> secunde.</summary>
+        /// <summary>AI-ul "se gandeste" cel putin <paramref name="seconds"/> secunde.</summary>
         IEnumerator Think(float seconds);
 
         /// <summary>
-        /// AI-ul pune piesa în <paramref name="cell"/>; <paramref name="place"/> se apelează în momentul
-        /// în care piesa apare pe tablă.
+        /// AI-ul pune piesa in <paramref name="cell"/>; <paramref name="place"/> se apeleaza in momentul
+        /// in care piesa apare pe tabla.
         /// </summary>
         IEnumerator PlacePiece(int cell, Action place);
 
-        /// <summary>Reacția la finalul meciului.</summary>
+        /// <summary>Reactia la finalul meciului.</summary>
         void OnMatchEnd(MatchOutcome outcome, bool celebrateDraw);
     }
 
-    /// <summary>AI fără corp (varianta 2D): doar pauza de gândire.</summary>
+    /// <summary>AI fara corp (varianta 2D): doar pauza de gandire.</summary>
     public sealed class NoOpponent : IOpponentPresenter
     {
         public void OnMenu() { }

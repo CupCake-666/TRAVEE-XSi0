@@ -4,26 +4,26 @@ using UnityEngine.Rendering;
 
 namespace Travee.TicTacToe.World
 {
-    /// <summary>Construiește obiectele 3D din cod: primitive colorate, materiale, mesh-ul de tor pentru piesa 0.</summary>
+    /// <summary>Construieste obiectele 3D din cod: primitive colorate, materiale, mesh-ul de tor pentru piesa 0.</summary>
     public static class WorldFactory
     {
         static readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
 
         /// <summary>
-        /// Materialul URP Lit (asset din proiect) din care se fac toate materialele colorate. Trebuie să fie un
-        /// asset referit din scenă: în build, materialul implicit al pipeline-ului nu există (e doar în editor),
-        /// iar un shader căutat după nume poate lipsi. Îl setează TicTacToeBootstrap.
+        /// Materialul URP Lit (asset din proiect) din care se fac toate materialele colorate. Trebuie sa fie un
+        /// asset referit din scena: in build, materialul implicit al pipeline-ului nu exista (e doar in editor),
+        /// iar un shader cautat dupa nume poate lipsi. Il seteaza TicTacToeBootstrap.
         /// </summary>
         public static Material Template { get; set; }
 
-        /// <summary>Material Lit cu culoarea dată. Materialele cu aceeași culoare sunt refolosite.</summary>
+        /// <summary>Material Lit cu culoarea data. Materialele cu aceeasi culoare sunt refolosite.</summary>
         public static Material Material(Color color, float smoothness = 0.25f)
         {
             if (materials.TryGetValue(color, out var cached) && cached != null) return cached;
 
             var source = Template;
             if (source == null && GraphicsSettings.currentRenderPipeline != null)
-                source = GraphicsSettings.currentRenderPipeline.defaultMaterial;   // merge doar în editor
+                source = GraphicsSettings.currentRenderPipeline.defaultMaterial;   // merge doar in editor
             Material material;
             if (source != null)
             {
@@ -46,8 +46,8 @@ namespace Travee.TicTacToe.World
         }
 
         /// <summary>
-        /// Primitivă Unity (cub, cilindru…) cu poziție/scală locale și culoare.
-        /// Colliderul e păstrat doar dacă <paramref name="keepCollider"/> (ex. căsuțele pe care se dă click).
+        /// Primitiva Unity (cub, cilindru…) cu pozitie/scala locale si culoare.
+        /// Colliderul e pastrat doar daca <paramref name="keepCollider"/> (ex. casutele pe care se da click).
         /// </summary>
         public static GameObject Primitive(PrimitiveType type, string name, Transform parent, Vector3 localPosition,
             Vector3 localScale, Color color, bool keepCollider = false)
@@ -58,15 +58,26 @@ namespace Travee.TicTacToe.World
             go.transform.localPosition = localPosition;
             go.transform.localScale = localScale;
             go.GetComponent<Renderer>().sharedMaterial = Material(color);
-            if (!keepCollider) Object.Destroy(go.GetComponent<Collider>());
+            if (!keepCollider) Remove(go.GetComponent<Collider>());
             return go;
+        }
+
+        /// <summary>
+        /// Sterge un obiect sau o componenta. La rulare se foloseste Destroy (sterge la sfarsitul cadrului); in
+        /// editor, in afara Play-ului, Destroy nu e permis si se foloseste DestroyImmediate.
+        /// </summary>
+        public static void Remove(Object target)
+        {
+            if (target == null) return;
+            if (Application.isPlaying) Object.Destroy(target);
+            else Object.DestroyImmediate(target);
         }
 
         public static GameObject Box(string name, Transform parent, Vector3 localPosition, Vector3 size, Color color,
             bool keepCollider = false) =>
             Primitive(PrimitiveType.Cube, name, parent, localPosition, size, color, keepCollider);
 
-        /// <summary>Obiect gol, folosit ca părinte (ca un "Scene Component" gol din Unreal).</summary>
+        /// <summary>Obiect gol, folosit ca parinte (ca un "Scene Component" gol din Unreal).</summary>
         public static Transform Group(string name, Transform parent, Vector3 localPosition)
         {
             var t = new GameObject(name).transform;
@@ -76,11 +87,11 @@ namespace Travee.TicTacToe.World
         }
 
         /// <summary>
-        /// Material cu o textură de „pete” în două nuanțe, generată din cod cu zgomot Perlin: solul nu mai e o
-        /// culoare uniformă. Textura se repetă în oglindă (Mirror), deci nu se văd cusături între repetări.
+        /// Material cu o textura de „pete” in doua nuante, generata din cod cu zgomot Perlin: solul nu mai e o
+        /// culoare uniforma. Textura se repeta in oglinda (Mirror), deci nu se vad cusaturi intre repetari.
         /// </summary>
-        /// <param name="metersPerTile">Câți metri acoperă o repetare a texturii.</param>
-        /// <param name="size">Latura obiectului pe care se pune (metri), ca să calculăm numărul de repetări.</param>
+        /// <param name="metersPerTile">Cati metri acopera o repetare a texturii.</param>
+        /// <param name="size">Latura obiectului pe care se pune (metri), ca sa calculam numarul de repetari.</param>
         public static Material MottledMaterial(Color dark, Color light, float metersPerTile, float size)
         {
             const int resolution = 256;
@@ -94,7 +105,7 @@ namespace Travee.TicTacToe.World
             for (int x = 0; x < resolution; x++)
             {
                 float u = x / (float)resolution, v = y / (float)resolution;
-                // Două „octave” de zgomot: pete mari + detaliu fin.
+                // Doua „octave” de zgomot: pete mari + detaliu fin.
                 float noise = 0.65f * Mathf.PerlinNoise(u * 5f + 3.1f, v * 5f + 7.7f)
                             + 0.35f * Mathf.PerlinNoise(u * 19f + 11.3f, v * 19f + 2.9f);
                 pixels[y * resolution + x] = Color.Lerp(dark, light, Mathf.SmoothStep(0.25f, 0.75f, noise));
@@ -110,23 +121,23 @@ namespace Travee.TicTacToe.World
         }
 
         /// <summary>
-        /// Mesh de munte: un con (rază 1, înălțime 1) din mai multe inele de vârfuri, fiecare vârf împins
-        /// aleator spre interior/exterior și în sus/jos, ca să iasă creste neregulate. Fețele au vârfurile lor
-        /// (nepartajate), deci se văd plate, „low-poly”. Are două sub-mesh-uri: fețele de jos (stâncă) și cele
-        /// de deasupra pragului <paramref name="topFrom"/> (zăpadă); fiecare primește alt material.
+        /// Mesh de munte: un con (raza 1, inaltime 1) din mai multe inele de varfuri, fiecare varf impins
+        /// aleator spre interior/exterior si in sus/jos, ca sa iasa creste neregulate. Fetele au varfurile lor
+        /// (nepartajate), deci se vad plate, „low-poly”. Are doua sub-mesh-uri: fetele de jos (stanca) si cele
+        /// de deasupra pragului <paramref name="topFrom"/> (zapada); fiecare primeste alt material.
         /// </summary>
         public static Mesh Mountain(System.Random rng, float topFrom, int sides = 13, int rings = 5)
         {
-            // points[ring][side]; inelul 0 e baza, ultimul „inel” e vârful.
+            // points[ring][side]; inelul 0 e baza, ultimul „inel” e varful.
             var points = new Vector3[rings + 1][];
             for (int r = 0; r <= rings; r++)
             {
                 points[r] = new Vector3[sides];
-                float t = r / (float)rings;                         // 0 = bază, 1 = vârf
-                float ringRadius = Mathf.Pow(1f - t, 1.25f);        // profil ușor concav, ca la un munte
+                float t = r / (float)rings;                         // 0 = baza, 1 = varf
+                float ringRadius = Mathf.Pow(1f - t, 1.25f);        // profil usor concav, ca la un munte
                 for (int i = 0; i < sides; i++)
                 {
-                    float angle = (i + (r % 2) * 0.5f) / sides * Mathf.PI * 2f;     // inelele sunt decalate între ele
+                    float angle = (i + (r % 2) * 0.5f) / sides * Mathf.PI * 2f;     // inelele sunt decalate intre ele
                     float radius = ringRadius * (1f + Jitter(rng, 0.28f));
                     float height = r == 0 ? 0f : t + Jitter(rng, 0.06f);
                     points[r][i] = r == rings
@@ -159,7 +170,7 @@ namespace Travee.TicTacToe.World
 
         static void AddFace(List<Vector3> vertices, List<int> body, List<int> top, float topFrom, Vector3 a, Vector3 b, Vector3 c)
         {
-            var target = (a.y + b.y + c.y) / 3f >= topFrom ? top : body;   // după înălțimea medie a feței
+            var target = (a.y + b.y + c.y) / 3f >= topFrom ? top : body;   // dupa inaltimea medie a fetei
             int index = vertices.Count;
             vertices.Add(a);
             vertices.Add(b);
@@ -170,7 +181,7 @@ namespace Travee.TicTacToe.World
         }
 
         /// <summary>
-        /// Mesh de tor (inel) culcat în planul XZ.
+        /// Mesh de tor (inel) culcat in planul XZ.
         /// <paramref name="radius"/> = raza inelului, <paramref name="thickness"/> = raza "tubului".
         /// </summary>
         public static Mesh Torus(float radius, float thickness, int segments = 40, int sides = 16)
@@ -181,11 +192,11 @@ namespace Travee.TicTacToe.World
 
             for (int i = 0; i <= segments; i++)
             {
-                float u = i / (float)segments * Mathf.PI * 2f;          // unghiul în jurul inelului
+                float u = i / (float)segments * Mathf.PI * 2f;          // unghiul in jurul inelului
                 var ringDir = new Vector3(Mathf.Cos(u), 0f, Mathf.Sin(u));
                 for (int j = 0; j <= sides; j++)
                 {
-                    float v = j / (float)sides * Mathf.PI * 2f;         // unghiul în jurul tubului
+                    float v = j / (float)sides * Mathf.PI * 2f;         // unghiul in jurul tubului
                     var normal = ringDir * Mathf.Cos(v) + Vector3.up * Mathf.Sin(v);
                     vertices.Add(ringDir * radius + normal * thickness);
                     normals.Add(normal);

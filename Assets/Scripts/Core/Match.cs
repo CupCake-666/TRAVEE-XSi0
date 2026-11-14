@@ -24,7 +24,7 @@ namespace Travee.TicTacToe.Core
     }
 
     /// <summary>
-    /// Un meci pacient vs AI. Cine câștigă coin flip-ul începe și primește X.
+    /// Un meci pacient vs AI. Cine castiga coin flip-ul incepe si primeste X.
     /// </summary>
     public sealed class Match
     {
@@ -63,7 +63,7 @@ namespace Travee.TicTacToe.Core
             }
         }
 
-        /// <summary>Aplică mutarea jucătorului aflat la rând. Returnează false dacă mutarea nu e validă.</summary>
+        /// <summary>Aplica mutarea jucatorului aflat la rand. Returneaza false daca mutarea nu e valida.</summary>
         public bool TryPlay(int cell)
         {
             if (IsOver || cell < 0 || cell >= Board.CellCount || !Board.IsEmpty(cell)) return false;

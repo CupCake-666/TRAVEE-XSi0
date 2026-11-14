@@ -3,12 +3,12 @@ using System.Collections.Generic;
 namespace Travee.TicTacToe.Core.AI
 {
     /// <summary>
-    /// Algoritmii de căutare folosiți de AI. Spațiul X și 0 e mic (sub 6000 de poziții legale),
-    /// deci totul se rezolvă exact, cu memoizare.
+    /// Algoritmii de cautare folositi de AI. Spatiul X si 0 e mic (sub 6000 de pozitii legale),
+    /// deci totul se rezolva exact, cu memoizare.
     /// </summary>
     public static class Search
     {
-        /// <summary>Penalizarea pentru o victorie a AI-ului în evaluarea "ajutătoare" (nivelurile 1-2).</summary>
+        /// <summary>Penalizarea pentru o victorie a AI-ului in evaluarea "ajutatoare" (nivelurile 1-2).</summary>
         public const double AIWinPenalty = 10.0;
 
         static readonly Dictionary<int, int> minimaxMemo = new Dictionary<int, int>();
@@ -17,8 +17,8 @@ namespace Travee.TicTacToe.Core.AI
         // ---------------------------------------------------------------- Minimax (joc perfect)
 
         /// <summary>
-        /// Scorul poziției cu joc perfect de ambele părți, din perspectiva lui X.
-        /// &gt; 0 = X câștigă, &lt; 0 = O câștigă, 0 = remiză. Victoriile rapide au valoare absolută mai mare.
+        /// Scorul pozitiei cu joc perfect de ambele parti, din perspectiva lui X.
+        /// &gt; 0 = X castiga, &lt; 0 = O castiga, 0 = remiza. Victoriile rapide au valoare absoluta mai mare.
         /// </summary>
         public static int ScoreForX(Board board)
         {
@@ -49,7 +49,7 @@ namespace Travee.TicTacToe.Core.AI
         public static int Score(Board board, Mark perspective) =>
             perspective == Mark.X ? ScoreForX(board) : -ScoreForX(board);
 
-        /// <summary>Scorul (din perspectiva celui care mută) după ce <paramref name="mover"/> pune în <paramref name="cell"/>.</summary>
+        /// <summary>Scorul (din perspectiva celui care muta) dupa ce <paramref name="mover"/> pune in <paramref name="cell"/>.</summary>
         public static int ScoreAfter(Board board, int cell, Mark mover)
         {
             board.Place(cell, mover);
@@ -58,7 +58,7 @@ namespace Travee.TicTacToe.Core.AI
             return score;
         }
 
-        /// <summary>Câte răspunsuri ale adversarului (aflat la mutare) duc la victoria lui, cu joc perfect.</summary>
+        /// <summary>Cate raspunsuri ale adversarului (aflat la mutare) duc la victoria lui, cu joc perfect.</summary>
         public static int CountWinningReplies(Board board, Mark replier)
         {
             int n = 0;
@@ -67,7 +67,7 @@ namespace Travee.TicTacToe.Core.AI
             return n;
         }
 
-        /// <summary>Câte răspunsuri ale adversarului (aflat la mutare) duc la pierderea lui, cu joc perfect.</summary>
+        /// <summary>Cate raspunsuri ale adversarului (aflat la mutare) duc la pierderea lui, cu joc perfect.</summary>
         public static int CountLosingReplies(Board board, Mark replier)
         {
             int n = 0;
@@ -83,12 +83,12 @@ namespace Travee.TicTacToe.Core.AI
             return false;
         }
 
-        // ---------------------------------------------------------------- Expectimax (AI ajutător)
+        // ---------------------------------------------------------------- Expectimax (AI ajutator)
 
         /// <summary>
-        /// Probabilitatea ca pacientul să câștige, presupunând că pacientul mută ALEATOR (cel mai slab caz,
-        /// de ex. mișcări imprecise) și AI-ul joacă cât se poate de ajutător de aici înainte.
-        /// O victorie a AI-ului valorează -<see cref="AIWinPenalty"/>, deci AI-ul o evită cu orice preț.
+        /// Probabilitatea ca pacientul sa castige, presupunand ca pacientul muta ALEATOR (cel mai slab caz,
+        /// de ex. miscari imprecise) si AI-ul joaca cat se poate de ajutator de aici inainte.
+        /// O victorie a AI-ului valoreaza -<see cref="AIWinPenalty"/>, deci AI-ul o evita cu orice pret.
         /// </summary>
         public static double HelpValue(Board board, Mark aiMark)
         {
@@ -131,7 +131,7 @@ namespace Travee.TicTacToe.Core.AI
             return result;
         }
 
-        /// <summary>Valoarea ajutătoare după ce AI-ul pune în <paramref name="cell"/>.</summary>
+        /// <summary>Valoarea ajutatoare dupa ce AI-ul pune in <paramref name="cell"/>.</summary>
         public static double HelpValueAfter(Board board, int cell, Mark aiMark)
         {
             board.Place(cell, aiMark);

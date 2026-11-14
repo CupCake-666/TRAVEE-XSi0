@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace Travee.TicTacToe.Core.AI
 {
     /// <summary>
-    /// Nivel 2 – Ușor. Pacientul tot nu poate pierde, dar AI-ul "pare" că se apără:
-    /// blochează amenințările și ocupă poziții bune atâta timp cât asta nu reduce prea mult
-    /// șansa pacientului de a câștiga (<see cref="DifficultySettings.level2DefenseSlack"/>).
+    /// Nivel 2 – Usor. Pacientul tot nu poate pierde, dar AI-ul "pare" ca se apara:
+    /// blocheaza amenintarile si ocupa pozitii bune atata timp cat asta nu reduce prea mult
+    /// sansa pacientului de a castiga (<see cref="DifficultySettings.level2DefenseSlack"/>).
     /// </summary>
     public sealed class HelperAI : IAIStrategy
     {
@@ -38,7 +38,7 @@ namespace Travee.TicTacToe.Core.AI
                 best = Math.Max(best, values[i]);
             }
 
-            // Mutări "permise": nu scad prea mult șansa pacientului și nu îi iau orice șansă de victorie.
+            // Mutari "permise": nu scad prea mult sansa pacientului si nu ii iau orice sansa de victorie.
             double threshold = best - settings.level2DefenseSlack;
             threshold = best > 0 ? Math.Max(threshold, Epsilon) : best - Epsilon;
 
@@ -46,7 +46,7 @@ namespace Travee.TicTacToe.Core.AI
             for (int i = 0; i < moves.Count; i++)
                 if (values[i] >= threshold) candidates.Add(moves[i]);
 
-            // Dintre ele, alege mutarea care arată cel mai "inteligent".
+            // Dintre ele, alege mutarea care arata cel mai "inteligent".
             double bestPlausibility = double.NegativeInfinity;
             var chosen = new List<int>();
             foreach (int cell in candidates)
@@ -70,8 +70,8 @@ namespace Travee.TicTacToe.Core.AI
         double Plausibility(Board board, int cell, Mark aiMark)
         {
             double score = 0;
-            if (board.IsWinningMove(cell, aiMark.Opponent())) score += 4;   // blochează pacientul
-            if (CreatesOpenTwo(board, cell, aiMark)) score += 1;              // își face o "amenințare"
+            if (board.IsWinningMove(cell, aiMark.Opponent())) score += 4;   // blocheaza pacientul
+            if (CreatesOpenTwo(board, cell, aiMark)) score += 1;              // isi face o "amenintare"
             if (cell == 4) score += 0.6;
             else if (AIUtil.IsCorner(cell)) score += 0.3;
             if (settings.steerTowardAffectedSide) score += 0.2 * AIUtil.HealthySideScore(cell, side);

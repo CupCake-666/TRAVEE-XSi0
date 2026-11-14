@@ -24,7 +24,7 @@ namespace Travee.TicTacToe.UI
         public static Color ForMark(Core.Mark mark) => mark == Core.Mark.X ? X : O;
     }
 
-    /// <summary>Construiește elementele de UI din cod (fără prefab-uri).</summary>
+    /// <summary>Construieste elementele de UI din cod (fara prefab-uri).</summary>
     public static class UIFactory
     {
         static Font font;
@@ -39,7 +39,7 @@ namespace Travee.TicTacToe.UI
             }
         }
 
-        /// <summary>Sprite circular generat procedural (pentru monedă).</summary>
+        /// <summary>Sprite circular generat procedural (pentru moneda).</summary>
         public static Sprite Circle
         {
             get
@@ -67,7 +67,7 @@ namespace Travee.TicTacToe.UI
             return (RectTransform)go.transform;
         }
 
-        /// <summary>Ancorează la <paramref name="anchor"/> (0..1) cu poziție și dimensiune fixe.</summary>
+        /// <summary>Ancoreaza la <paramref name="anchor"/> (0..1) cu pozitie si dimensiune fixe.</summary>
         public static RectTransform Place(this RectTransform rt, Vector2 anchor, Vector2 position, Vector2 size)
         {
             rt.anchorMin = rt.anchorMax = anchor;
@@ -112,7 +112,7 @@ namespace Travee.TicTacToe.UI
         }
 
         public static Button Button(string name, Transform parent, string text, int fontSize, Color background,
-            Color textColor, UnityAction onClick)
+            Color textColor, UnityAction onClick = null)
         {
             var image = Panel(name, parent, background);
             var button = image.gameObject.AddComponent<Button>();
@@ -127,9 +127,41 @@ namespace Travee.TicTacToe.UI
             var label = Label("Label", image.transform, text, fontSize, textColor, FontStyle.Bold);
             label.rectTransform.Stretch();
 
-            button.onClick.AddListener(() => Sfx.Play(Sound.Click));   // toate butoanele au același sunet
-            if (onClick != null) button.onClick.AddListener(onClick);
+            if (onClick != null) OnClick(button, onClick);
             return button;
+        }
+
+        /// <summary>
+        /// Leaga un buton de o actiune din cod si ii pune sunetul de click (acelasi pentru toate butoanele).
+        /// Legaturile facute asa nu se salveaza in scena: ecranele le refac la fiecare pornire (metoda Wire).
+        /// </summary>
+        public static void OnClick(Button button, UnityAction action)
+        {
+            if (button == null) return;
+            button.onClick.AddListener(() => Sfx.Play(Sound.Click));
+            button.onClick.AddListener(action);
+        }
+
+        /// <summary>
+        /// Canvas-ul interfetei: ocupa tot ecranul si se scaleaza dupa inaltime, fata de 1920 × 1080.
+        /// Folosit si la pornire (daca interfata nu e in scena), si de comanda din editor care o pune in scena.
+        /// </summary>
+        public static Transform CreateCanvas(Transform parent, string name = "Canvas")
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            if (parent != null) go.transform.SetParent(parent, false);
+
+            var canvas = go.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            var scaler = go.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 1f; // scaleaza dupa inaltime: interfata ramane mereu intreaga pe ecran
+
+            go.AddComponent<GraphicRaycaster>();
+            return go.transform;
         }
 
         public static Text LabelOf(Button button) => button.GetComponentInChildren<Text>();

@@ -9,10 +9,10 @@ using UnityEngine;
 namespace Travee.TicTacToe
 {
     /// <summary>
-    /// Salvează datele pentru analiză în două fișiere CSV (separator ',', cultură invariantă):
-    ///  - games.csv: un rând pe meci
-    ///  - moves.csv: un rând pe mutare (inclusiv timpul de reacție al pacientului)
-    /// Locația: Application.persistentDataPath/TRAVEE/XSi0/
+    /// Salveaza datele pentru analiza in doua fisiere CSV (separator ',', cultura invarianta):
+    ///  - games.csv: un rand pe meci
+    ///  - moves.csv: un rand pe mutare (inclusiv timpul de reactie al pacientului)
+    /// Locatia: Application.persistentDataPath/TRAVEE/XSi0/
     /// </summary>
     public sealed class SessionLogger
     {
@@ -68,7 +68,7 @@ namespace Travee.TicTacToe
             totalReactionMs = 0;
         }
 
-        /// <param name="reactionMs">Timpul de la începutul rândului pacientului până la selecție; null pentru AI.</param>
+        /// <param name="reactionMs">Timpul de la inceputul randului pacientului pana la selectie; null pentru AI.</param>
         public void LogMove(MoveRecord move, double? reactionMs)
         {
             if (match == null) return;
@@ -95,7 +95,7 @@ namespace Travee.TicTacToe
                 sinceStart.ToString("F0", Inv)));
         }
 
-        /// <summary>Închide meciul curent. Dacă meciul nu s-a terminat (pacientul a ieșit), se loghează ca "Abandoned".</summary>
+        /// <summary>Inchide meciul curent. Daca meciul nu s-a terminat (pacientul a iesit), se logheaza ca "Abandoned".</summary>
         public void EndGame()
         {
             if (match == null) return;

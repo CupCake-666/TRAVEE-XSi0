@@ -1,143 +1,189 @@
-# Cum modifici peisajele de mână
+# Cum modifici scena de mână
 
-Un lucru de știut de la început: **peisajele nu sunt salvate în scenă, sunt construite din cod când apeși
-Play** (`Assets/Scripts/Game/World/Environments.cs`). De aceea, în editor, înainte de Play, scena `XSi0_3D`
-pare aproape goală: are doar camera, obiectul `XSi0` și obiectele `Decor_...`. Copacii apar abia la rulare.
+Scena `Assets/Scenes/XSi0_3D.unity` conține acum, ca obiecte reale, tot ce ține de Unity: camera, tabla,
+personajul cu Animator-ul lui, locurile în care așteaptă, cele trei peisaje cu fiecare copac și piatră,
+luminile, setările de cer și ceață și interfața (meniul, textele, ecranul de rezultat). Le selectezi în fereastra **Scene** sau în **Hierarchy** și le schimbi
+din **Inspector**. Jocul le folosește exact cum le găsește.
 
-Ai trei feluri de a modifica ce se vede. Le poți combina.
-
-| Vrei să… | Cel mai simplu |
-|---|---|
-| adaugi obiecte noi, așezate cu mouse-ul | **A.** le pui în scenă, sub `Decor_...` |
-| muți / ștergi un obiect care există deja | **B.** îi schimbi linia din `Environments.cs` |
-| afli o poziție bună, vizual | **C.** muți obiectul în timpul Play-ului și copiezi numerele |
-| schimbi tabla, personajul, volumele | Inspector, pe obiectul `XSi0` |
+În cod au rămas doar lucrurile care **sunt** logică: regulile jocului, AI-ul, mișcarea personajului și ce
+fac butoanele (vezi „Ce a rămas în cod” la sfârșit).
 
 ---
 
-## A. Adaugi obiecte de mână, în editor
+## Prima dată
 
-Rulează o dată **TRAVEE → Creează scena X și 0 (3D)**. În Hierarchy apar patru obiecte goale:
+1. Deschide scena `Assets/Scenes/XSi0_3D`.
+2. Dacă în Hierarchy nu vezi `Tabla`, `Personaj` și `Decor_Forest → Peisaj`, rulează
+   **TRAVEE → Scena editabilă → 1. Pune totul în scenă**. Comanda creează doar ce lipsește; ce există deja
+   (inclusiv ce ai aranjat tu) rămâne neatins.
+3. Fereastra Scene trebuie să fie în **3D**. Proiectul a pornit din șablonul 2D, de aceea se deschidea în
+   2D și totul părea plat, văzut din față. Editorul o trece acum singur pe 3D, o dată, când încarcă
+   scripturile. Dacă tot pare plat: **TRAVEE → Scena editabilă → Treci fereastra Scene pe 3D**, sau
+   dezactivează butonul **2D** din bara de sus a ferestrei Scene.
 
-- `Decor_All` – ce pui sub el apare în **toate** peisajele;
-- `Decor_Forest`, `Decor_Mountain`, `Decor_Beach` – apare doar în peisajul respectiv.
-
-Pași:
-1. În fereastra **Project**, deschide `Assets/Art/Nature`. Acolo sunt toate modelele (copaci, pietre, tufe…).
-2. Trage un model în fereastra **Scene** sau direct în **Hierarchy**, peste `Decor_Forest` (de exemplu).
-   Trebuie să ajungă **copil** al obiectului `Decor_...`; dacă a ajuns afară, trage-l peste el în Hierarchy.
-3. Așază-l cu uneltele din Scene: **W** = mutare, **E** = rotire, **R** = scalare. **F** = centrează
-   vederea pe obiectul selectat. Valorile exacte se pot scrie în Inspector, la **Transform**.
-4. **Ctrl+S** ca să salvezi scena.
-5. Apasă Play: obiectul tău apare împreună cu decorul construit din cod.
-
-Repere ca să știi unde pui:
-- pacientul stă în **origine** (X = 0, Z = 0), cu ochii la 1,2 m, și privește spre **+Z**;
-- **+X** e în dreapta lui, **−X** în stânga, **−Z** în spatele lui; solul e la **Y = 0**;
-- tabla e la Z = 0,9; personajul așteaptă la X = ±1,3, Z = 1,7 și merge până în spatele tablei;
-- **nu pune nimic** în dreptunghiul X între −3,4 și 3,4, Z între 0,6 și 2,4: pe acolo merge personajul;
-- pe plajă, marea începe la Z = 10.
-
-Bine de știut:
-- în editor, toate obiectele `Decor_...` sunt vizibile deodată. La Play rămâne doar cel al peisajului ales.
-  Dacă te încurcă, debifează temporar căsuța din stânga numelui, în Inspector (la Play se setează singură);
-- modelele au în fișier mărimi diferite, deci probabil va trebui să le scalezi (**R**);
-- ca să vezi unde vine față de restul decorului, folosește metoda **C** de mai jos pentru poziție, apoi
-  pune obiectul definitiv aici;
-- obiectele puse așa **se păstrează** când rulezi din nou meniul TRAVEE (scena nu mai e recreată de la zero)
-  și ajung și în build.
-
-Poți pune și alte lucruri decât modele: lumini (**GameObject → Light**), forme simple
-(**GameObject → 3D Object**), orice.
+Navigarea în Scene: click dreapta ținut + **W A S D** = zbori prin scenă; rotița = zoom; **F** = centrează
+pe obiectul selectat; **Alt** + click stânga = te rotești în jurul lui.
 
 ---
 
-## B. Schimbi ce e construit din cod
+## Ce e în Hierarchy
 
-Deschide `Assets/Scripts/Game/World/Environments.cs`. Fiecare peisaj e o metodă: `Forest()`, `Mountain()`,
-`Beach()`. Un obiect pus de mână în cod arată așa:
+| Obiect | Ce este | Ce poți schimba |
+|---|---|---|
+| `Main Camera` | capul pacientului | poziția (înălțimea ochilor), direcția de bază, Field of View |
+| `Tabla` | tabla de joc | poziția, rotația, mărimea (Transform) |
+| `Personaj` | personajul AI | Animator, setările lui (componenta **Opponent Character**), materialele |
+| `Loc_Stanga`, `Loc_Dreapta` | unde așteaptă personajul | poziția |
+| `Decor_Forest`, `Decor_Mountain`, `Decor_Beach` | câte un peisaj | tot: obiecte, lumină, cer, ceață, sunet |
+| `Decor_All` | obiecte care apar în toate peisajele | ce pui tu în el |
+| `Interfata` | meniul, moneda, textele din joc, ecranul de rezultat | poziții, mărimi, culori, fonturi, texte fixe |
+| `XSi0` | pornirea jocului și setările de terapie | dificultate, mâna afectată, volume |
 
-```csharp
-Prop("tent_detailedOpen", new Vector3(-5.8f, 0, 9.0f), 2.8f, 140);
-//    ↑ numele modelului          ↑ X     ↑ Y  ↑ Z     ↑ mărime (m)  ↑ rotire (grade)
-```
-- **numele** = numele fișierului din `Assets/Art/Nature`, fără `.fbx`;
-- **poziția** = metri, cu aceleași repere ca mai sus;
-- **mărimea** = cât să aibă cea mai mare dimensiune a obiectului (un copac de 8 m, o tufă de 1 m);
-- **rotirea** = în jurul axei verticale.
-
-Ca să **muți** un obiect, schimbi numerele. Ca să-l **ștergi**, ștergi linia (sau pui `//` în fața ei).
-Ca să **adaugi** unul, copiezi o linie și îi schimbi numele și numerele.
-
-Obiectele „împrăștiate” vin din linii `Scatter`:
-```csharp
-Scatter(new[] { "Bush_Common_Flowers", "Bush_Common" }, 34, 4f, 18f, 0.9f, 1.8f, 3.7f);
-//      ↑ din ce modele alege                           ↑ câte
-//                                                          ↑ între ce distanțe față de pacient (m)
-//                                                                    ↑ mărimea, între … și …
-//                                                                                ↑ raza zonei de joc ocolite
-```
-Aici nu muți obiecte unul câte unul: schimbi **câte** sunt, **cât de departe** și **cât de mari**. Pozițiile
-sunt „la întâmplare”, dar aceleași la fiecare rulare.
-
-Tot aici, la sfârșitul fiecărei metode, sunt culorile cerului, lumina, ceața și sunetul de fundal.
-
-După ce salvezi fișierul, Unity recompilează singur; apeși Play și vezi rezultatul.
-
----
-
-## C. Găsești poziția potrivită în timpul Play-ului
-
-1. Apasă **Play**. În Hierarchy, sub `XSi0 → Room3D → Environment_Forest` (sau `_Mountain`, `_Beach`),
-   apar toate obiectele peisajului, cu numele modelelor.
-2. Treci pe fereastra **Scene** (jocul continuă să ruleze) și selectează un obiect: click pe el, sau pe
-   numele lui în Hierarchy.
-3. Mută-l, rotește-l, scalează-l (**W / E / R**) până arată bine.
-4. Notează valorile din Inspector, de la **Transform** (Position, Rotation Y, Scale).
-5. Oprește Play-ul.
-
-**Atenție:** tot ce modifici în timpul Play-ului **se pierde** când oprești. De aceea notezi numerele și apoi:
-- le scrii în linia `Prop(...)` din `Environments.cs` (metoda B), dacă obiectul era construit din cod, sau
-- le scrii la obiectul tău de sub `Decor_...` (metoda A).
-
-Truc: click dreapta pe componenta **Transform → Copy → Component** în timpul Play-ului, iar după ce
-oprești, pe obiectul din `Decor_...`: click dreapta pe Transform → **Paste → Component Values**.
-
----
-
-## Setările din Inspector (obiectul `XSi0`)
-
-Selectează `XSi0` în Hierarchy (cu Play oprit). Valorile schimbate aici se păstrează în scenă.
+### Un peisaj (`Decor_...`)
+- **`Peisaj`** – toate obiectele: copaci, tufe, pietre, munți, mare, foc. Un click pe un obiect în Scene îl
+  selectează pe el (suportul cu numele modelului, de exemplu `CommonTree_3`), nu peisajul întreg.
+  Îl muți cu **W**, îl rotești cu **E**, îl scalezi cu **R**, îl ștergi cu **Delete**, îl dublezi cu **Ctrl+D**.
+- **`Soare`** – lumina principală. Rotația ei dă direcția luminii și a umbrelor; culoarea și intensitatea
+  sunt în componenta **Light**.
+- componenta **Theme Settings** (pe `Decor_...` însuși) – cerul, lumina ambientă, ceața, sunetul de fundal:
 
 | Câmp | Ce face |
 |---|---|
-| Opponent Placement | pe ce parte stă personajul |
-| World Theme | peisajul de la prima pornire (apoi se ține minte cel ales din meniu) |
-| Opponent Reach | cât de întins e brațul personajului când atinge căsuța |
-| Board Height / Board Distance | înălțimea centrului tablei și distanța ei față de pacient |
-| Effects Volume / Ambient Volume | volumul efectelor și al sunetului de fundal |
-| Affected Side, Difficulty, Ai Move Delay | setările de terapie și de dificultate |
+| Look → Sky → Zenith / Horizon / Ground | culorile cerului desenat din cod; **Horizon** e și culoarea ceții |
+| Look → Sky → Stars, Moon Direction | stelele și luna cerului desenat din cod |
+| Look → Sky → Exposure, Rotation, Tint | luminozitatea, rotirea și nuanța fotografiei de cer |
+| Look → Ambient Sky / Equator / Ground | lumina care ajunge și în umbră, pe trei culori |
+| Look → Fog Start / Fog End | de unde începe și unde devine completă ceața (metri); Fog End = 0 o oprește |
+| Sky Panorama | fotografia 360° folosită ca cer (din `Assets/Art/Sky`); goală = cerul desenat din cod |
+| Ambient Sound | sunetul de fundal (din `Assets/Audio/Ambient`) |
+| Sun | lumina principală a peisajului (de obicei copilul `Soare`) |
+
+  Câmpurile *Sun Color / Sun Intensity / Sun Angles* din Look nu se folosesc cât timp **Sun** e setat:
+  atunci contează obiectul `Soare`.
+
+În editor se vede **un singur peisaj** odată. Îl schimbi din
+**TRAVEE → Scena editabilă → Arată în editor: Pădure / Munte / Plajă**, care aplică și cerul și ceața lui.
+După ce schimbi valori în Theme Settings, rulează din nou aceeași comandă ca să vezi rezultatul în editor
+(în joc se aplică oricum la pornire).
+
+### Tabla
+În editor e desenată ca un contur (gizmo) cu cele nouă căsuțe; plăcuțele și piesele reale apar la Play.
+Poziția = centrul tablei. Rotația `X = -90` înseamnă „vertical, cu fața spre pacient” (tabla e construită
+culcată); schimbă **Y** ca s-o întorci stânga-dreapta și **X** ca s-o înclini. **Scale** îi dă mărimea
+(1,3 = 62 cm latura). Personajul își calculează singur unde să stea ca s-o atingă.
+
+### Personajul
+- **Animator**: selectează `Personaj` și deschide **Window → Animation → Animator**. Vezi stările (Idle,
+  Walk, Wave, Think, PlaceA…), poți schimba clipul fiecăreia (câmpul **Motion**) sau viteza lui. Numele
+  stărilor trebuie să rămână aceleași: codul le pornește după nume. Controller-ul e
+  `Assets/Art/Character/OpponentAnimator.controller` și nu mai e regenerat automat.
+- **Opponent Character** (Inspector): pe ce parte stă, înălțimea de bază, mărirea automată până la tablă,
+  cât de întins e brațul, viteza de mers, cât face cu mâna, cât stă aprinsă căsuța roșie, unghiul la care
+  observă că pacientul se uită la el.
+- **Poziția lui din scenă nu contează**: la pornire merge la `Loc_Stanga` sau `Loc_Dreapta`. Mută acele
+  obiecte ca să-i schimbi locul.
+- **Mărimea**: o dă câmpul **Height** (și mărirea automată), nu Scale-ul din Transform. Pune Height = 0
+  dacă vrei să decidă Scale-ul.
+
+### Interfața (`Interfata`)
+E un **Canvas** cu patru ecrane, fiecare un obiect: `GameScreen` (textele din timpul meciului și butonul
+Meniu), `CoinFlipScreen` (moneda), `ResultScreen` (rezultatul) și `MenuScreen` (meniul).
+
+- În editor e activ doar `MenuScreen`. Ca să aranjezi alt ecran, selectează-l și bifează căsuța din stânga
+  numelui, în Inspector; debifeaz-o la loc când termini. La pornire, jocul decide singur care se vede.
+- Interfața se editează cel mai ușor în **fereastra Game** sau în Scene cu butonul **2D** apăsat (aici 2D
+  chiar ajută) și cu unealta **T** (Rect Tool). Dublu-click pe `Interfata` în Hierarchy o încadrează.
+  În vederea 3D, Canvas-ul apare ca un dreptunghi uriaș peste lume: e normal, e desenat „pe ecran”, nu în
+  lume. Îl poți ascunde în Scene cu iconița-ochi de lângă numele lui, în Hierarchy.
+- Poți schimba orice ține de aspect: poziția și mărimea (Rect Transform), culoarea (Image), fontul, mărimea
+  și culoarea textului (Text), textele fixe („X și 0”, „Joacă din nou”…).
+- **Textele care se schimbă în joc** (nivelul, al cui e rândul, mesajul de rezultat, „Mâna afectată: …”) sunt
+  scrise de cod la rulare; ce vezi în editor sunt exemple. Ca să le schimbi conținutul: `GameController.cs`,
+  `Screens.cs` (numele nivelurilor) și scripturile ecranelor.
+- **Ce fac butoanele rămâne în cod.** Fiecare ecran are în Inspector o secțiune „Legături spre obiectele din
+  scenă”: acolo scrie care obiect e butonul de nivel, care e textul de stare etc. Nu șterge acele obiecte și
+  nu goli legăturile; dacă înlocuiești un buton cu altul, trage-l pe cel nou în câmpul respectiv.
+- Canvas-ul se scalează după înălțimea ecranului, față de 1920 × 1080 (componenta **Canvas Scaler**).
+
+### Camera
+Poziția = ochii pacientului; rotația = direcția în care privește la început. Componenta
+**Desktop Head Look** e privirea cu mouse-ul (în VR se scoate). Cât timp această componentă e pe cameră,
+jocul nu mai mută camera de la locul ei.
 
 ---
 
-## Adaugi modele sau sunete noi
+## Adaugi obiecte
 
-1. Pune fișierul în `Assets/Art/Nature` (modele `.fbx`), `Assets/Art/Sky` (panorame de cer) sau
-   `Assets/Audio/Sfx` și `Assets/Audio/Ambient` (sunete).
-2. Rulează **TRAVEE → Creează scena X și 0 (3D)**: biblioteca de asset-uri se reface și include fișierul nou.
-3. Modelul poate fi folosit apoi în ambele feluri: tras de mână sub `Decor_...` sau, în cod, cu
-   `Prop("NumeleFisierului", ...)`.
+Trage un model din `Assets/Art/Nature` (fereastra Project) în Scene, apoi, în Hierarchy, peste `Decor_...`
+al peisajului dorit – sau peste `Decor_All`, ca să apară în toate trei. Așază-l și salvează cu **Ctrl+S**.
 
-Regula de licență rămâne: doar asset-uri gratuite, cu licență care permite folosirea în TRAVEE (ideal CC0),
-iar sursa se trece în `CREDITS.md`.
+Pune obiectele tale **lângă** `Peisaj` (direct sub `Decor_...`), nu în el: dacă refaci vreodată peisajul
+din cod, ce e lângă el rămâne.
+
+Poți adăuga orice obiect Unity: lumini (**GameObject → Light**), forme (**GameObject → 3D Object**),
+sisteme de particule, surse de sunet.
+
+Repere:
+- pacientul stă în **origine** și privește spre **+Z**; **+X** e în dreapta lui; solul e la **Y = 0**;
+- nu pune nimic pe drumul personajului, între locurile lui și spatele tablei;
+- pe plajă, marea începe la Z = 10.
+
+Modele sau sunete noi: pune fișierul în `Assets/Art/Nature`, `Assets/Art/Sky` sau `Assets/Audio/...`, apoi
+rulează **TRAVEE → Creează scena X și 0 (3D)** (reface lista de asset-uri; scena nu e ștearsă). Regula de
+licență rămâne: doar asset-uri gratuite, ideal CC0, cu sursa trecută în `CREDITS.md`.
+
+---
+
+## Comenzile din meniul TRAVEE
+
+| Comandă | Ce face |
+|---|---|
+| Scena editabilă → 1. Pune totul în scenă | creează ce lipsește; nu atinge ce există |
+| Scena editabilă → Arată în editor: … | afișează un peisaj în editor, cu cerul și ceața lui |
+| Scena editabilă → Reconstruiește din cod peisajul afișat | șterge `Peisaj` și îl reface din `Environments.cs` (pierzi aranjarea lui) |
+| Scena editabilă → Readu setările din cod pentru peisajul afișat | reface Theme Settings și `Soare` cu valorile din cod |
+| Scena editabilă → Reconstruiește interfața din cod | șterge `Interfata` și o reface (pierzi aranjarea ei) |
+| Scena editabilă → Treci fereastra Scene pe 3D | scoate fereastra Scene din modul 2D |
+| Creează scena X și 0 (3D) | reface lista de asset-uri și legăturile; **păstrează** scena |
+| Regenerează animațiile personajului | reface stările Animator Controller-ului din fișierele de animație |
+
+Dacă ștergi un obiect din greșeală (`Tabla`, `Personaj`, un `Soare`), comanda **1. Pune totul în scenă**
+îl pune la loc cu valorile implicite. Dacă obiectul lipsește și nu rulezi comanda, jocul îl creează singur
+la pornire, ca înainte.
+
+---
+
+## Ce a rămas în cod
+
+| Ce | Unde | De ce |
+|---|---|---|
+| regulile, AI-ul, desfășurarea unui meci | `Scripts/Core`, `GameController.cs` | logică |
+| mișcarea personajului, IK-ul, atingerea | `OpponentCharacter.cs` | logică |
+| plăcuțele tablei și piesele X / 0 | `Board3DView.cs` | apar și dispar în timpul jocului |
+| cerul desenat din cod | `Sky.cs` | folosit doar dacă nu e aleasă o fotografie |
+| „rețeta” peisajelor | `Environments.cs` | folosită doar la *Reconstruiește din cod* |
+| ce fac butoanele; textele care se schimbă în joc; animația monedei | `Scripts/Game/UI`, `GameController.cs` | logică |
+| „rețeta” interfeței | metodele `Create` / `Build` ale ecranelor | folosită doar la *Reconstruiește interfața din cod* |
+
+Pentru schimbări „în masă” (de exemplu de două ori mai mulți copaci), e mai simplu să schimbi numerele din
+`Environments.cs` și să rulezi *Reconstruiește din cod peisajul afișat*, decât să pui obiectele unul câte unul.
 
 ---
 
 ## Dacă ceva nu merge
 
-- **Obiectul meu nu apare la Play.** Verifică să fie copil al unui `Decor_...` și că acel `Decor_` e al
-  peisajului în care te uiți (sau pune-l sub `Decor_All`).
-- **Obiectul apare roz.** Materialul lui nu e pentru URP. Rulează din nou meniul TRAVEE; dacă rămâne roz,
-  selectează materialul și alege shader-ul **Universal Render Pipeline → Lit**.
-- **Am stricat ceva în cod.** Erorile apar în fereastra **Console**, cu fișierul și linia. Varianta bună e
-  mereu în git: `git checkout -- Assets/Scripts/Game/World/Environments.cs` readuce fișierul la ultimul commit.
+- **Totul pare plat, văzut din față.** Fereastra Scene e în modul 2D: rulează **TRAVEE → Scena editabilă →
+  Treci fereastra Scene pe 3D** sau dezactivează butonul **2D** din bara ei.
+- **Un dreptunghi alb uriaș acoperă scena.** E Canvas-ul interfeței; ascunde-l cu iconița-ochi de lângă
+  `Interfata`, în Hierarchy (se ascunde doar în editor, nu și în joc).
+- **Un buton nu mai face nimic.** I s-a pierdut legătura: selectează ecranul lui și verifică secțiunea
+  „Legături spre obiectele din scenă”.
+- **Nu pot selecta obiecte în Scene.** Verifică în Hierarchy să nu fie activată iconița cu degetul tăiat
+  de lângă numele obiectului (blochează selectarea) și, sus în Scene, să fie aleasă unealta de mutare (**W**),
+  nu mâna (**Q**).
+- **Am schimbat ceva în timpul Play-ului și a dispărut.** Tot ce modifici în Play se pierde la oprire.
+  Modifică având Play-ul oprit.
+- **Un obiect apare roz.** Materialul lui nu e pentru URP: selectează materialul și alege shader-ul
+  **Universal Render Pipeline → Lit**.
+- **Vreau să mă întorc la o variantă bună.** Scena e în git:
+  `git checkout -- Assets/Scenes/XSi0_3D.unity` o readuce la ultimul commit.

@@ -8,8 +8,8 @@ using UnityEngine;
 namespace Travee.TicTacToe.Editor
 {
     /// <summary>
-    /// Configurează automat orice FBX pus în Assets/Art/Character/ (personaj + animații Mixamo):
-    /// rig Humanoid, avatar copiat de pe model, clipuri redenumite după fișier, loop pentru animațiile continue.
+    /// Configureaza automat orice FBX pus in Assets/Art/Character/ (personaj + animatii Mixamo):
+    /// rig Humanoid, avatar copiat de pe model, clipuri redenumite dupa fisier, loop pentru animatiile continue.
     /// </summary>
     public sealed class CharacterImportSettings : AssetPostprocessor
     {
@@ -18,11 +18,11 @@ namespace Travee.TicTacToe.Editor
         public const string ModelPath = CharacterFolder + "Ch19_nonPBR.fbx";
         public const string TexturesFolder = CharacterFolder + "Textures";
 
-        // Take-ul cu animația aleasă pe Mixamo. Fișierele descărcate „With Skin” mai conțin un take ascuns,
-        // „Take 001” (260 de cadre, o poză ciudată cu brațul întins), care nu trebuie importat.
+        // Take-ul cu animatia aleasa pe Mixamo. Fisierele descarcate „With Skin” mai contin un take ascuns,
+        // „Take 001” (260 de cadre, o poza ciudata cu bratul intins), care nu trebuie importat.
         const string MixamoTake = "mixamo.com";
 
-        // Animațiile care se repetă cât timp personajul rămâne în starea respectivă.
+        // Animatiile care se repeta cat timp personajul ramane in starea respectiva.
         static readonly HashSet<string> Looping = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Happy Idle", "Thinking", "Look Around", "Happy Walk", "Clapping", "Victory Idle", "Waving",
@@ -38,7 +38,7 @@ namespace Travee.TicTacToe.Editor
             var importer = (ModelImporter)assetImporter;
             bool isModel = assetPath == ModelPath;
 
-            // Configurăm doar la primul import sau cât timp animația nu are încă avatarul modelului.
+            // Configuram doar la primul import sau cat timp animatia nu are inca avatarul modelului.
             if (!importer.importSettingsMissing &&
                 (isModel || importer.avatarSetup == ModelImporterAvatarSetup.CopyFromOther)) return;
 
@@ -79,9 +79,9 @@ namespace Travee.TicTacToe.Editor
                 : defaults;
             foreach (var clip in clips)
             {
-                clip.name = clipName;                       // Mixamo numește toate clipurile "mixamo.com"
+                clip.name = clipName;                       // Mixamo numeste toate clipurile "mixamo.com"
                 clip.loopTime = Looping.Contains(clipName);
-                // Animațiile sunt "In Place": blocăm rădăcina ca personajul să nu alunece sau să se rotească.
+                // Animatiile sunt "In Place": blocam radacina ca personajul sa nu alunece sau sa se roteasca.
                 clip.lockRootRotation = true;
                 clip.lockRootHeightY = true;
                 clip.lockRootPositionXZ = true;
@@ -93,8 +93,8 @@ namespace Travee.TicTacToe.Editor
         }
 
         /// <summary>
-        /// Animațiile pot fi importate înaintea modelului (ordine alfabetică). După ce modelul are avatar,
-        /// le reimportăm ca să-l copieze.
+        /// Animatiile pot fi importate inaintea modelului (ordine alfabetica). Dupa ce modelul are avatar,
+        /// le reimportam ca sa-l copieze.
         /// </summary>
         static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)
         {
@@ -118,8 +118,8 @@ namespace Travee.TicTacToe.Editor
         }
 
         /// <summary>
-        /// Texturile modelului Mixamo sunt încorporate în FBX. Le extragem în Textures/ și reimportăm modelul,
-        /// ca materialele (generate automat pentru URP) să le găsească. Altfel personajul apare alb.
+        /// Texturile modelului Mixamo sunt incorporate in FBX. Le extragem in Textures/ si reimportam modelul,
+        /// ca materialele (generate automat pentru URP) sa le gaseasca. Altfel personajul apare alb.
         /// </summary>
         public static bool EnsureModelTextures()
         {
@@ -138,14 +138,14 @@ namespace Travee.TicTacToe.Editor
             return true;
         }
 
-        /// <summary>Importerul are clipuri din alte take-uri decât cel Mixamo (ex. „Take 001”)?</summary>
+        /// <summary>Importerul are clipuri din alte take-uri decat cel Mixamo (ex. „Take 001”)?</summary>
         static bool HasExtraTakes(ModelImporter importer) =>
             importer.defaultClipAnimations.Any(c => c.takeName == MixamoTake) &&
             importer.clipAnimations.Any(c => c.takeName != MixamoTake);
 
         /// <summary>
-        /// Aduce fișierele deja importate la regulile curente: scoate take-ul ascuns („Take 001”)
-        /// și actualizează care animații se repetă (Loop Time).
+        /// Aduce fisierele deja importate la regulile curente: scoate take-ul ascuns („Take 001”)
+        /// si actualizeaza care animatii se repeta (Loop Time).
         /// </summary>
         public static void FixExtraTakes()
         {
@@ -172,7 +172,7 @@ namespace Travee.TicTacToe.Editor
                 }
 
                 if (!changed) continue;
-                importer.clipAnimations = clips;   // modificarea marchează importerul ca schimbat
+                importer.clipAnimations = clips;   // modificarea marcheaza importerul ca schimbat
                 importer.SaveAndReimport();
             }
         }
@@ -180,7 +180,7 @@ namespace Travee.TicTacToe.Editor
         static Avatar LoadModelAvatar() =>
             AssetDatabase.LoadAllAssetsAtPath(ModelPath).OfType<Avatar>().FirstOrDefault(a => a.isValid);
 
-        /// <summary>Clipul de animație dintr-un FBX Mixamo (ignoră clipurile "__preview__").</summary>
+        /// <summary>Clipul de animatie dintr-un FBX Mixamo (ignora clipurile "__preview__").</summary>
         public static AnimationClip LoadClip(string fileName)
         {
             foreach (string folder in new[] { AnimationsFolder, CharacterFolder })

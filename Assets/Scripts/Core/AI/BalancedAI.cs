@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace Travee.TicTacToe.Core.AI
 {
     /// <summary>
-    /// Nivel 3 – Mediu. Joacă optim (minimax), dar cu probabilitatea constantă
-    /// <see cref="DifficultySettings.level3MistakeChance"/> face o mutare greșită aleasă la întâmplare.
-    /// Ținta: pacientul câștigă ~60-70% din meciuri; AI-ul poate câștiga, remiza e posibilă.
+    /// Nivel 3 – Mediu. Joaca optim (minimax), dar cu probabilitatea constanta
+    /// <see cref="DifficultySettings.level3MistakeChance"/> face o mutare gresita aleasa la intamplare.
+    /// Tinta: pacientul castiga ~60-70% din meciuri; AI-ul poate castiga, remiza e posibila.
     /// </summary>
     public sealed class BalancedAI : IAIStrategy
     {

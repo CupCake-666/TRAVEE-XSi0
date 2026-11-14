@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace Travee.TicTacToe.Core.AI
 {
     /// <summary>
-    /// Nivel 1 – Foarte ușor. Pacientul nu poate pierde.
-    /// AI-ul alege mutarea care maximizează șansa pacientului de a câștiga chiar dacă acesta mută aleator:
-    /// nu închide niciodată o linie proprie, nu blochează și lasă liniile pacientului deschise.
+    /// Nivel 1 – Foarte usor. Pacientul nu poate pierde.
+    /// AI-ul alege mutarea care maximizeaza sansa pacientului de a castiga chiar daca acesta muta aleator:
+    /// nu inchide niciodata o linie proprie, nu blocheaza si lasa liniile pacientului deschise.
     /// </summary>
     public sealed class GentleAI : IAIStrategy
     {

@@ -2,31 +2,32 @@ using UnityEngine;
 
 namespace Travee.TicTacToe.World
 {
-    /// <summary>Peisajul în care se joacă. Se alege din meniu și se poate schimba oricând.</summary>
+    /// <summary>Peisajul in care se joaca. Se alege din meniu si se poate schimba oricand.</summary>
     public enum WorldTheme
     {
-        Forest,     // poiană în pădure, ziua
-        Mountain,   // platou la munte, noaptea, cu stele și foc de tabără
-        Beach,      // plajă cu palmieri și mare
+        Forest,     // poiana in padure, ziua
+        Mountain,   // platou la munte, noaptea, cu stele si foc de tabara
+        Beach,      // plaja cu palmieri si mare
     }
 
-    /// <summary>Tot ce diferă de la un peisaj la altul în afară de obiecte: cer, lumină, ceață, sunet.</summary>
+    /// <summary>Tot ce difera de la un peisaj la altul in afara de obiecte: cer, lumina, ceata, sunet.</summary>
+    [System.Serializable]      // apare in Inspector (in componenta ThemeSettings) si se salveaza in scena
     public struct ThemeLook
     {
         public SkySettings Sky;
         public Color SunColor;
         public float SunIntensity;
-        public Vector3 SunAngles;           // rotația luminii (grade)
+        public Vector3 SunAngles;           // rotatia luminii (grade)
         public Color AmbientSky, AmbientEquator, AmbientGround;
-        public float FogStart, FogEnd;      // metri; FogEnd = 0 → fără ceață
+        public float FogStart, FogEnd;      // metri; FogEnd = 0 → fara ceata
         public string AmbientSound;         // numele clipului din Assets/Audio/Ambient
     }
 
     /// <summary>
-    /// Construiește obiectele unui peisaj din modele CC0 (Quaternius Stylized Nature MegaKit și Ultimate Nature
-    /// Pack, plus câteva obiecte Kenney) și din forme generate din cod (munți, mare).
-    /// Pacientul stă în origine și privește spre +Z; zona de joc (tabla și traseul personajului) rămâne liberă.
-    /// Pozițiile „împrăștiate” vin dintr-un generator cu sămânță fixă: peisajul arată la fel la fiecare rulare.
+    /// Construieste obiectele unui peisaj din modele CC0 (Quaternius Stylized Nature MegaKit si Ultimate Nature
+    /// Pack, plus cateva obiecte Kenney) si din forme generate din cod (munti, mare).
+    /// Pacientul sta in origine si priveste spre +Z; zona de joc (tabla si traseul personajului) ramane libera.
+    /// Pozitiile „imprastiate” vin dintr-un generator cu samanta fixa: peisajul arata la fel la fiecare rulare.
     /// </summary>
     public sealed class EnvironmentBuilder
     {
@@ -37,7 +38,7 @@ namespace Travee.TicTacToe.World
 
         readonly GameAssets assets;
         readonly Transform root;
-        readonly System.Collections.Generic.List<Vector4> blocked = new System.Collections.Generic.List<Vector4>();   // x, _, z, rază
+        readonly System.Collections.Generic.List<Vector4> blocked = new System.Collections.Generic.List<Vector4>();   // x, _, z, raza
         System.Random rng;
 
         EnvironmentBuilder(GameAssets assets, Transform root)
@@ -56,30 +57,31 @@ namespace Travee.TicTacToe.World
             }
         }
 
-        /// <summary>Creează obiectele peisajului sub <paramref name="root"/> și întoarce „aspectul” lui.</summary>
+        /// <summary>Creeaza obiectele peisajului sub <paramref name="root"/> si intoarce „aspectul” lui.</summary>
         public static ThemeLook Build(WorldTheme theme, GameAssets assets, Transform root)
         {
             var builder = new EnvironmentBuilder(assets, root) { rng = new System.Random(100 + (int)theme) };
-            if (assets == null) return builder.Plain();     // fără bibliotecă de modele: doar o podea și un perete
+            if (assets == null) return builder.Plain();     // fara biblioteca de modele: doar o podea si un perete
             switch (theme)
             {
-                case WorldTheme.Mountain: return builder.Mountain();
-                case WorldTheme.Beach: return builder.Beach();
-                default: return builder.Forest();
+                case WorldTheme.Mountain: builder.Mountain(); break;
+                case WorldTheme.Beach: builder.Beach(); break;
+                default: builder.Forest(); break;
             }
+            return Look(theme);
         }
 
         /// <summary>
-        /// Obiectul pe care urcă personajul ca să ajungă la tablă, potrivit peisajului: o buturugă mare în
-        /// pădure, o lespede de stâncă la munte și pe plajă, un podium de lemn în cameră. Ocupă dreptunghiul
-        /// dat (centru și jumătăți de lățime/adâncime) și are înălțimea <paramref name="height"/>.
+        /// Obiectul pe care urca personajul ca sa ajunga la tabla, potrivit peisajului: o buturuga mare in
+        /// padure, o lespede de stanca la munte si pe plaja, un podium de lemn in camera. Ocupa dreptunghiul
+        /// dat (centru si jumatati de latime/adancime) si are inaltimea <paramref name="height"/>.
         /// </summary>
         public static void BuildStand(WorldTheme theme, GameAssets assets, Transform root, Vector3 center,
             float halfWidth, float halfDepth, float height)
         {
             var builder = new EnvironmentBuilder(assets, root) { rng = new System.Random(7) };
-            // Obiectul e mai mare decât zona pe care se stă: marginile lui rotunjite rămân în afara ei.
-            // Spre tablă nu are voie să iasă (ar trece prin ea), așa că surplusul e mutat spre spate.
+            // Obiectul e mai mare decat zona pe care se sta: marginile lui rotunjite raman in afara ei.
+            // Spre tabla nu are voie sa iasa (ar trece prin ea), asa ca surplusul e mutat spre spate.
             var size = new Vector3(halfWidth * 2f + 0.7f, height, halfDepth * 2f + 0.4f);
             center += Vector3.forward * 0.17f;
             Transform stand = null;
@@ -87,7 +89,7 @@ namespace Travee.TicTacToe.World
             else stand = builder.FittedProp("Rock_Medium_2", center, size + Vector3.up * 0.05f, 0f);
             if (stand != null) return;
 
-            // Model lipsă: podium de lemn cu câte o treaptă pe laterale.
+            // Model lipsa: podium de lemn cu cate o treapta pe laterale.
             var wood = new Color(0.56f, 0.41f, 0.27f);
             var step = WorldFactory.Group("Stand", root, center);
             WorldFactory.Box("Top", step, new Vector3(0f, height / 2f, 0f), new Vector3(halfWidth * 2f, height, halfDepth * 2f), wood);
@@ -96,17 +98,77 @@ namespace Travee.TicTacToe.World
                     new Vector3(0.3f, height / 2f, halfDepth * 2f), wood);
         }
 
+        /// <summary>
+        /// „Aspectul” unui peisaj (cer, lumina, ceata, sunet), separat de obiectele lui. E separat pentru ca
+        /// obiectele pot veni din doua locuri – construite din cod sau salvate in scena si aranjate de mana –
+        /// dar aspectul se aplica la fel in ambele cazuri.
+        /// </summary>
+        public static ThemeLook Look(WorldTheme theme)
+        {
+            switch (theme)
+            {
+                case WorldTheme.Mountain:
+                    return new ThemeLook
+                    {
+                        Sky = new SkySettings
+                        {
+                            Zenith = new Color(0.01f, 0.02f, 0.08f), Horizon = new Color(0.10f, 0.12f, 0.20f),
+                            Ground = new Color(0.03f, 0.04f, 0.08f),
+                            Stars = 1500, MoonDirection = new Vector3(-0.50f, 0.42f, 0.76f),
+                            Panorama = "sky_night_stars", Exposure = 0.55f, Rotation = 200f,
+                            Tint = new Color(0.42f, 0.47f, 0.62f),
+                        },
+                        // „Lumina lunii”: rece si slaba. Vine din spatele pacientului, ca tabla sa fie luminata din fata.
+                        SunColor = new Color(0.62f, 0.72f, 1f), SunIntensity = 0.8f, SunAngles = new Vector3(42f, -22f, 0f),
+                        AmbientSky = new Color(0.20f, 0.25f, 0.42f), AmbientEquator = new Color(0.16f, 0.19f, 0.30f),
+                        AmbientGround = new Color(0.07f, 0.08f, 0.12f),
+                        FogStart = 35f, FogEnd = 260f,
+                        AmbientSound = "night_crickets",
+                    };
+                case WorldTheme.Beach:
+                    return new ThemeLook
+                    {
+                        Sky = new SkySettings
+                        {
+                            Zenith = new Color(0.16f, 0.50f, 0.95f), Horizon = new Color(0.76f, 0.86f, 0.96f),
+                            Ground = new Color(0.30f, 0.62f, 0.76f),
+                            Panorama = "sky_day_clouds", Exposure = 1.1f, Rotation = 140f,
+                        },
+                        SunColor = new Color(1f, 0.97f, 0.88f), SunIntensity = 1.5f, SunAngles = new Vector3(52f, 28f, 0f),
+                        AmbientSky = new Color(0.66f, 0.80f, 0.95f), AmbientEquator = new Color(0.70f, 0.70f, 0.62f),
+                        AmbientGround = new Color(0.50f, 0.44f, 0.32f),
+                        FogStart = 80f, FogEnd = 600f,
+                        AmbientSound = "beach_waves",
+                    };
+                default:
+                    return new ThemeLook
+                    {
+                        Sky = new SkySettings
+                        {
+                            Zenith = new Color(0.26f, 0.52f, 0.90f), Horizon = new Color(0.74f, 0.83f, 0.93f),
+                            Ground = new Color(0.34f, 0.48f, 0.28f),
+                            Panorama = "sky_day_clouds", Exposure = 1.0f, Rotation = 0f,
+                        },
+                        SunColor = new Color(1f, 0.95f, 0.84f), SunIntensity = 1.3f, SunAngles = new Vector3(48f, -30f, 0f),
+                        AmbientSky = new Color(0.62f, 0.72f, 0.86f), AmbientEquator = new Color(0.52f, 0.60f, 0.52f),
+                        AmbientGround = new Color(0.28f, 0.34f, 0.24f),
+                        FogStart = 18f, FogEnd = 85f,
+                        AmbientSound = "forest_birds",
+                    };
+            }
+        }
+
         // ------------------------------------------------------------------ peisajele
 
-        ThemeLook Forest()
+        void Forest()
         {
             Ground(new Color(0.33f, 0.52f, 0.20f), new Color(0.42f, 0.60f, 0.24f));
             var pond = new Vector3(-6.5f, 0, -6.5f);
             var birches = new Vector3(7.5f, 0, -6f);
-            Block(pond, 5.2f);          // locuri rezervate: împrăștierea de mai jos le ocolește
+            Block(pond, 5.2f);          // locuri rezervate: imprastierea de mai jos le ocoleste
             Block(birches, 4.5f);
 
-            // Copacii „vedetă”, puși de mână ca să încadreze tabla.
+            // Copacii „vedeta”, pusi de mana ca sa incadreze tabla.
             Prop("CommonTree_2", new Vector3(-4.2f, 0, 5.4f), 8.0f, 20);
             Prop("CommonTree_3", new Vector3(4.4f, 0, 6.0f), 8.5f, 200);
             Prop("CommonTree_1", new Vector3(-6.0f, 0, 2.4f), 7.5f, 90);
@@ -114,7 +176,7 @@ namespace Travee.TicTacToe.World
             Prop("CommonTree_5", new Vector3(0.8f, 0, 10.5f), 9.5f, 45);
 
             Scatter(new[] { "CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "CommonTree_5",
-                "CommonTree_1", "CommonTree_3", "TwistedTree_2", "TwistedTree_4", "Pine_2", "Pine_4" },   // puțini copaci roșii, ca accent
+                "CommonTree_1", "CommonTree_3", "TwistedTree_2", "TwistedTree_4", "Pine_2", "Pine_4" },   // putini copaci rosii, ca accent
                 count: 85, minRadius: 8f, maxRadius: 40f, minSize: 6.5f, maxSize: 11f, clearRadius: 7f);
             Scatter(new[] { "Bush_Common_Flowers", "Bush_Common_Flowers", "Bush_Common_Flowers", "Bush_Common" }, 34, 4f, 18f,
                 0.9f, 1.8f, 3.7f);
@@ -128,7 +190,7 @@ namespace Travee.TicTacToe.World
             Scatter(new[] { "Mushroom_Common", "Mushroom_Laetiporus" }, 16, 2.2f, 10f, 0.2f, 0.35f, 0f, true);
             Scatter(Pebbles, 30, 1.5f, 10f, 0.12f, 0.3f, 0f, true);
 
-            // Un mic loc de tabără în spate, plus un buștean lângă zona de joc.
+            // Un mic loc de tabara in spate, plus un bustean langa zona de joc.
             Prop("tent_detailedOpen", new Vector3(-5.8f, 0, 9.0f), 2.8f, 140);
             Prop("campfire_stones", new Vector3(-3.9f, 0, 8.0f), 0.9f, 0);
             Prop("WoodLog_Moss", new Vector3(3.3f, 0, 4.0f), 1.8f, 35);
@@ -136,13 +198,13 @@ namespace Travee.TicTacToe.World
             Prop("WoodLog", new Vector3(-2.9f, 0, 9.2f), 1.5f, 100);
             Flame(new Vector3(-3.9f, 0.12f, 8.0f), 0.55f);
 
-            // Cărare de pietre de la zona de joc spre tabără.
+            // Carare de pietre de la zona de joc spre tabara.
             var path = new[] { new Vector3(-2.4f, 0, 4.4f), new Vector3(-2.8f, 0, 5.2f), new Vector3(-3.0f, 0, 6.0f),
                 new Vector3(-3.3f, 0, 6.7f), new Vector3(-3.4f, 0, 7.3f) };
             for (int i = 0; i < path.Length; i++)
                 Prop(i % 2 == 0 ? "RockPath_Round_Wide" : "RockPath_Round_Small_2", path[i], 0.65f, Range(0f, 360f));
 
-            // Un iaz cu nuferi în spatele pacientului (se vede când se întoarce), cu o salcie și pietre pe mal.
+            // Un iaz cu nuferi in spatele pacientului (se vede cand se intoarce), cu o salcie si pietre pe mal.
             Pond(pond, 3.4f, new Color(0.16f, 0.42f, 0.50f));
             for (int i = 0; i < 11; i++)
                 Prop("Lilypad", pond + Polar(Range(0f, 360f), Range(0.4f, 2.8f)) + Vector3.up * 0.035f, Range(0.45f, 0.8f), Range(0f, 360f));
@@ -154,33 +216,18 @@ namespace Travee.TicTacToe.World
             for (int i = 0; i < 14; i++)
                 Prop("Grass_Common_Tall", pond + Polar(Range(0f, 360f), Range(3.6f, 4.6f)), Range(0.7f, 1.1f), Range(0f, 360f));
 
-            // Un pâlc de mesteceni și tufe cu fructe, tot în spate / lateral.
+            // Un palc de mesteceni si tufe cu fructe, tot in spate / lateral.
             for (int i = 0; i < 9; i++)
                 Prop("BirchTree_" + (1 + i % 3), birches + Polar(i * 40f, Range(0.5f, 4.0f)), Range(6f, 9f), Range(0f, 360f));
             Scatter(new[] { "BushBerries_1", "BushBerries_2" }, 16, 4.5f, 16f, 0.8f, 1.4f, 3.8f);
             Scatter(new[] { "Petal_1", "Petal_2", "Petal_3" }, 60, 1.5f, 9f, 0.10f, 0.18f, 0f, true);
-
-            return new ThemeLook
-            {
-                Sky = new SkySettings
-                {
-                    Zenith = new Color(0.26f, 0.52f, 0.90f), Horizon = new Color(0.74f, 0.83f, 0.93f),
-                    Ground = new Color(0.34f, 0.48f, 0.28f),
-                    Panorama = "sky_day_clouds", Exposure = 1.0f, Rotation = 0f,
-                },
-                SunColor = new Color(1f, 0.95f, 0.84f), SunIntensity = 1.3f, SunAngles = new Vector3(48f, -30f, 0f),
-                AmbientSky = new Color(0.62f, 0.72f, 0.86f), AmbientEquator = new Color(0.52f, 0.60f, 0.52f),
-                AmbientGround = new Color(0.28f, 0.34f, 0.24f),
-                FogStart = 18f, FogEnd = 85f,
-                AmbientSound = "forest_birds",
-            };
         }
 
-        ThemeLook Mountain()
+        void Mountain()
         {
             Ground(new Color(0.16f, 0.24f, 0.20f), new Color(0.22f, 0.30f, 0.24f));
 
-            // Lanțul de munți din depărtare: generați din cod, cu creste neregulate și vârf înzăpezit.
+            // Lantul de munti din departare: generati din cod, cu creste neregulate si varf inzapezit.
             var rock = new Color(0.20f, 0.24f, 0.36f);
             var snow = new Color(0.85f, 0.90f, 1f);
             for (int i = 0; i < 26; i++)
@@ -200,7 +247,7 @@ namespace Travee.TicTacToe.World
             Scatter(new[] { "Grass_Wispy_Short", "Grass_Wispy_Tall" }, 120, 1.4f, 12f, 0.3f, 0.55f, 0f, true);
             Scatter(new[] { "Fern_1", "Plant_7" }, 22, 3.8f, 14f, 0.6f, 1.2f, 3.6f);
 
-            // Focul de tabără: luminează cald zona de joc și pâlpâie.
+            // Focul de tabara: lumineaza cald zona de joc si palpaie.
             var fire = new Vector3(3.2f, 0, 5.0f);
             Prop("campfire_logs", fire, 0.95f, 15);
             Prop("tent_smallOpen", new Vector3(5.2f, 0, 6.6f), 2.3f, 215);
@@ -213,47 +260,29 @@ namespace Travee.TicTacToe.World
             flame.shadows = LightShadows.None;
             flame.gameObject.AddComponent<Flicker>();
             Flame(fire + Vector3.up * 0.12f, 0.7f);
-            for (int i = 0; i < 9; i++)     // cerc de pietre în jurul focului
+            for (int i = 0; i < 9; i++)     // cerc de pietre in jurul focului
                 Prop(Pebbles[i % Pebbles.Length], fire + Polar(i * 40f, 0.75f), 0.28f, Range(0f, 360f));
             Prop("WoodLog", fire + new Vector3(1.5f, 0, 0.6f), 1.3f, 20);
 
-            // Mai departe și mai sus e zăpadă: brazi și stânci înzăpezite, de jur împrejur.
+            // Mai departe si mai sus e zapada: brazi si stanci inzapezite, de jur imprejur.
             Scatter(new[] { "PineTree_Snow_1", "PineTree_Snow_2", "PineTree_Snow_3" }, 40, 16f, 46f, 6f, 11f, 7.5f);
             Scatter(new[] { "Rock_Snow_1", "Rock_Snow_2", "Rock_Snow_3" }, 22, 7f, 30f, 0.9f, 3.0f, 4f);
 
-            // Licurici în jurul zonei de joc.
+            // Licurici in jurul zonei de joc.
             Fireflies(55, new Vector3(0f, 1.1f, 1f), 3f, 13f);
-
-            return new ThemeLook
-            {
-                Sky = new SkySettings
-                {
-                    Zenith = new Color(0.01f, 0.02f, 0.08f), Horizon = new Color(0.10f, 0.12f, 0.20f),
-                    Ground = new Color(0.03f, 0.04f, 0.08f),
-                    Stars = 1500, MoonDirection = new Vector3(-0.50f, 0.42f, 0.76f),
-                    Panorama = "sky_night_stars", Exposure = 0.55f, Rotation = 200f,
-                    Tint = new Color(0.42f, 0.47f, 0.62f),
-                },
-                // „Lumina lunii”: rece și slabă. Vine din spatele pacientului, ca tabla să fie luminată din față.
-                SunColor = new Color(0.62f, 0.72f, 1f), SunIntensity = 0.8f, SunAngles = new Vector3(42f, -22f, 0f),
-                AmbientSky = new Color(0.20f, 0.25f, 0.42f), AmbientEquator = new Color(0.16f, 0.19f, 0.30f),
-                AmbientGround = new Color(0.07f, 0.08f, 0.12f),
-                FogStart = 35f, FogEnd = 260f,
-                AmbientSound = "night_crickets",
-            };
         }
 
-        ThemeLook Beach()
+        void Beach()
         {
             Ground(new Color(0.90f, 0.80f, 0.58f), new Color(0.96f, 0.88f, 0.66f));
 
-            // Marea: o placă albastră, lucioasă, care începe la 10 m în fața pacientului și vine/pleacă ușor (maree),
-            // cu o dungă de spumă pe margine.
+            // Marea: o placa albastra, lucioasa, care incepe la 10 m in fata pacientului si vine/pleaca usor (maree),
+            // cu o dunga de spuma pe margine.
             const float shore = 10f;
             var sea = WorldFactory.Group("Sea", root, new Vector3(0, 0, shore));
             var waterColor = new Color(0.08f, 0.50f, 0.70f);
             var water = WorldFactory.Box("Water", sea, new Vector3(0, 0.02f, 400f), new Vector3(2400f, 0.04f, 800f), waterColor);
-            // Material propriu, foarte lucios (smoothness 0,92), ca apa să reflecte cerul.
+            // Material propriu, foarte lucios (smoothness 0,92), ca apa sa reflecte cerul.
             water.GetComponent<Renderer>().sharedMaterial = new Material(WorldFactory.Material(waterColor)) { name = "Water" };
             water.GetComponent<Renderer>().sharedMaterial.SetFloat("_Smoothness", 0.92f);
             WorldFactory.Box("Shallows", sea, new Vector3(0, 0.022f, 2.2f), new Vector3(2400f, 0.04f, 4.4f),
@@ -262,7 +291,7 @@ namespace Travee.TicTacToe.World
                 new Color(0.97f, 0.99f, 1f));
             sea.gameObject.AddComponent<Tide>();
 
-            // Insule în larg.
+            // Insule in larg.
             var island = new Color(0.30f, 0.50f, 0.34f);
             var islandTop = new Color(0.40f, 0.60f, 0.38f);
             Peak(new Vector3(-90f, 0, 210f), 30f, 80f, island, islandTop, 0.45f);
@@ -282,22 +311,22 @@ namespace Travee.TicTacToe.World
             Scatter(Rocks, 10, 4f, 16f, 0.5f, 1.6f, 3.6f, maxZ: shore + 4f);
             Scatter(Pebbles, 60, 1.5f, 12f, 0.12f, 0.35f, 0f, true, shore + 1f);
 
-            // Stânci în apă și o canoe trasă pe mal.
+            // Stanci in apa si o canoe trasa pe mal.
             Prop("Rock_Medium_1", new Vector3(-8f, -0.3f, 14f), 3.2f, 40);
             Prop("Rock_Medium_3", new Vector3(10f, -0.3f, 16f), 4.0f, 0);
             Prop("Rock_Medium_2", new Vector3(3.5f, -0.3f, 21f), 2.6f, 200);
             Prop("canoe", new Vector3(3.0f, 0, 8.0f), 2.8f, 65);
             Prop("canoe_paddle", new Vector3(2.0f, 0.02f, 7.2f), 1.4f, 20);
-            Prop("canoe", new Vector3(-5.5f, -0.08f, 12.2f), 2.8f, 100);          // a doua, pe apă, lângă mal
+            Prop("canoe", new Vector3(-5.5f, -0.08f, 12.2f), 2.8f, 100);          // a doua, pe apa, langa mal
 
-            // Un loc de foc pe nisip, cu bușteni de stat.
+            // Un loc de foc pe nisip, cu busteni de stat.
             var bonfire = new Vector3(-3.6f, 0, 7.0f);
             Prop("campfire_stones", bonfire, 0.9f, 0);
             Flame(bonfire + Vector3.up * 0.12f, 0.5f);
             Prop("WoodLog", bonfire + new Vector3(-1.3f, 0, 0.4f), 1.4f, 80);
             Prop("WoodLog", bonfire + new Vector3(0.6f, 0, 1.3f), 1.3f, 160);
 
-            // Interiorul insulei, în spatele pacientului: dealuri verzi, stânci cu mușchi, iarbă de dună.
+            // Interiorul insulei, in spatele pacientului: dealuri verzi, stanci cu muschi, iarba de duna.
             var hill = new Color(0.26f, 0.48f, 0.26f);
             var hillTop = new Color(0.36f, 0.58f, 0.30f);
             Peak(new Vector3(-60f, 0, -190f), 42f, 120f, hill, hillTop, 0.4f);
@@ -307,24 +336,9 @@ namespace Travee.TicTacToe.World
             Scatter(new[] { "Rock_Moss_1", "Rock_Moss_2", "Rock_Moss_3" }, 14, 5f, 22f, 0.6f, 2.0f, 4f, maxZ: shore - 2f);
             Scatter(new[] { "Wheat" }, 70, 2.5f, 18f, 0.5f, 0.9f, 0f, true, shore - 1.5f);
             Scatter(new[] { "BushBerries_1", "BushBerries_2" }, 14, 5f, 20f, 0.8f, 1.5f, 4f, maxZ: shore - 2f);
-
-            return new ThemeLook
-            {
-                Sky = new SkySettings
-                {
-                    Zenith = new Color(0.16f, 0.50f, 0.95f), Horizon = new Color(0.76f, 0.86f, 0.96f),
-                    Ground = new Color(0.30f, 0.62f, 0.76f),
-                    Panorama = "sky_day_clouds", Exposure = 1.1f, Rotation = 140f,
-                },
-                SunColor = new Color(1f, 0.97f, 0.88f), SunIntensity = 1.5f, SunAngles = new Vector3(52f, 28f, 0f),
-                AmbientSky = new Color(0.66f, 0.80f, 0.95f), AmbientEquator = new Color(0.70f, 0.70f, 0.62f),
-                AmbientGround = new Color(0.50f, 0.44f, 0.32f),
-                FogStart = 80f, FogEnd = 600f,
-                AmbientSound = "beach_waves",
-            };
         }
 
-        /// <summary>Decor minim, folosit doar dacă lipsește biblioteca de asset-uri (nu se poate alege din meniu).</summary>
+        /// <summary>Decor minim, folosit doar daca lipseste biblioteca de asset-uri (nu se poate alege din meniu).</summary>
         ThemeLook Plain()
         {
             var wall = new Color(0.86f, 0.90f, 0.93f);
@@ -341,18 +355,18 @@ namespace Travee.TicTacToe.World
 
         // ------------------------------------------------------------------ unelte
 
-        /// <summary>Solul: un plan de 1 km cu o textură de pete în două nuanțe, generată din cod.</summary>
+        /// <summary>Solul: un plan de 1 km cu o textura de pete in doua nuante, generata din cod.</summary>
         void Ground(Color dark, Color light)
         {
-            // Plane-ul Unity are 10 × 10 m; scalat cu 100 → 1 km, cât să ajungă până la orizont.
+            // Plane-ul Unity are 10 × 10 m; scalat cu 100 → 1 km, cat sa ajunga pana la orizont.
             var ground = WorldFactory.Primitive(PrimitiveType.Plane, "Ground", root, Vector3.zero, new Vector3(100f, 1f, 100f), dark);
             ground.GetComponent<Renderer>().sharedMaterial = WorldFactory.MottledMaterial(dark, light, metersPerTile: 9f, size: 1000f);
         }
 
-        /// <summary>Iaz: un disc subțire, lucios, puțin deasupra solului.</summary>
+        /// <summary>Iaz: un disc subtire, lucios, putin deasupra solului.</summary>
         void Pond(Vector3 center, float radius, Color color)
         {
-            // Cilindrul Unity are diametrul 1 și înălțimea 2: îl turtim până devine un disc de 2 cm.
+            // Cilindrul Unity are diametrul 1 si inaltimea 2: il turtim pana devine un disc de 2 cm.
             var pond = WorldFactory.Primitive(PrimitiveType.Cylinder, "Pond", root, center + Vector3.up * 0.012f,
                 new Vector3(radius * 2f, 0.01f, radius * 2f), color);
             var material = new Material(WorldFactory.Material(color)) { name = "PondWater" };
@@ -362,8 +376,8 @@ namespace Travee.TicTacToe.World
         }
 
         /// <summary>
-        /// Flacără: două conuri care „luminează” singure (material Unlit, neafectat de umbre), unul portocaliu și
-        /// unul galben în interior, care tremură (<see cref="FlameDance"/>).
+        /// Flacara: doua conuri care „lumineaza” singure (material Unlit, neafectat de umbre), unul portocaliu si
+        /// unul galben in interior, care tremura (<see cref="FlameDance"/>).
         /// </summary>
         void Flame(Vector3 position, float height)
         {
@@ -387,7 +401,7 @@ namespace Travee.TicTacToe.World
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
-        /// <summary>Licurici: sfere mici luminoase, împrăștiate într-un inel, care plutesc și pâlpâie (<see cref="Firefly"/>).</summary>
+        /// <summary>Licurici: sfere mici luminoase, imprastiate intr-un inel, care plutesc si palpaie (<see cref="Firefly"/>).</summary>
         void Fireflies(int count, Vector3 center, float minRadius, float maxRadius)
         {
             if (assets == null || assets.glowMaterial == null) return;
@@ -405,9 +419,9 @@ namespace Travee.TicTacToe.World
         }
 
         /// <summary>
-        /// Pune un model din bibliotecă la <paramref name="position"/>, rotit cu <paramref name="yaw"/> grade și
-        /// scalat astfel încât cea mai mare dimensiune a lui să fie <paramref name="size"/> metri. Modelele au
-        /// mărimi oarecare în fișier, așa că măsurăm „cutia” lor (bounds) și scalăm după ea.
+        /// Pune un model din biblioteca la <paramref name="position"/>, rotit cu <paramref name="yaw"/> grade si
+        /// scalat astfel incat cea mai mare dimensiune a lui sa fie <paramref name="size"/> metri. Modelele au
+        /// marimi oarecare in fisier, asa ca masuram „cutia” lor (bounds) si scalam dupa ea.
         /// </summary>
         Transform Prop(string model, Vector3 position, float size, float yaw)
         {
@@ -422,8 +436,8 @@ namespace Travee.TicTacToe.World
         }
 
         /// <summary>
-        /// Ca <see cref="Prop"/>, dar modelul e întins pe fiecare axă până ocupă exact cutia <paramref name="size"/>
-        /// (lățime, înălțime, adâncime), cu baza pe sol.
+        /// Ca <see cref="Prop"/>, dar modelul e intins pe fiecare axa pana ocupa exact cutia <paramref name="size"/>
+        /// (latime, inaltime, adancime), cu baza pe sol.
         /// </summary>
         Transform FittedProp(string model, Vector3 position, Vector3 size, float yaw)
         {
@@ -435,7 +449,7 @@ namespace Travee.TicTacToe.World
                 size.y / Mathf.Max(bounds.size.y, 0.0001f),
                 size.z / Mathf.Max(bounds.size.z, 0.0001f));
             SitOnGround(holder, position.y);
-            // Centrăm cutia pe poziția cerută (pivotul modelului nu e mereu în mijloc).
+            // Centram cutia pe pozitia ceruta (pivotul modelului nu e mereu in mijloc).
             var fitted = BoundsOf(holder);
             holder.position += new Vector3(position.x - fitted.center.x, 0f, position.z - fitted.center.z);
             holder.localRotation = Quaternion.Euler(0f, yaw, 0f);
@@ -449,6 +463,7 @@ namespace Travee.TicTacToe.World
             if (prefab == null) return null;
 
             var holder = WorldFactory.Group(model, root, position);
+            holder.gameObject.AddComponent<PropHolder>();   // un click pe model in Scene selecteaza acest suport
             Object.Instantiate(prefab, holder);
             if (holder.GetComponentsInChildren<Renderer>().Length == 0) return null;
             bounds = BoundsOf(holder);
@@ -463,16 +478,16 @@ namespace Travee.TicTacToe.World
             return bounds;
         }
 
-        /// <summary>După scalare, urcă sau coboară modelul până are baza la înălțimea <paramref name="y"/>.</summary>
+        /// <summary>Dupa scalare, urca sau coboara modelul pana are baza la inaltimea <paramref name="y"/>.</summary>
         static void SitOnGround(Transform holder, float y)
         {
             holder.position += Vector3.up * (y - BoundsOf(holder).min.y);
         }
 
         /// <summary>
-        /// Împrăștie <paramref name="count"/> modele într-un inel în jurul pacientului.
+        /// Imprastie <paramref name="count"/> modele intr-un inel in jurul pacientului.
         /// <paramref name="clearRadius"/> = raza zonei de joc ocolite; plantele mici (<paramref name="smallPlants"/>)
-        /// ocolesc doar culoarul pe care merge personajul. <paramref name="maxZ"/> = limită spre față (ex. malul mării).
+        /// ocolesc doar culoarul pe care merge personajul. <paramref name="maxZ"/> = limita spre fata (ex. malul marii).
         /// </summary>
         void Scatter(string[] models, int count, float minRadius, float maxRadius, float minSize, float maxSize,
             float clearRadius, bool smallPlants = false, float maxZ = float.MaxValue)
@@ -480,7 +495,7 @@ namespace Travee.TicTacToe.World
             int placed = 0;
             for (int attempt = 0; attempt < count * 20 && placed < count; attempt++)
             {
-                // Rădăcina pătrată face distribuția uniformă pe suprafață (altfel s-ar înghesui spre centru).
+                // Radacina patrata face distributia uniforma pe suprafata (altfel s-ar inghesui spre centru).
                 float radius = Mathf.Sqrt(Mathf.Lerp(minRadius * minRadius, maxRadius * maxRadius, (float)rng.NextDouble()));
                 var position = Polar(Range(0f, 360f), radius);
                 if (position.z > maxZ || IsBlocked(position)) continue;
@@ -491,7 +506,7 @@ namespace Travee.TicTacToe.World
             }
         }
 
-        /// <summary>Rezervă un cerc în care <see cref="Scatter"/> nu mai pune nimic (ex. iazul).</summary>
+        /// <summary>Rezerva un cerc in care <see cref="Scatter"/> nu mai pune nimic (ex. iazul).</summary>
         void Block(Vector3 center, float radius) => blocked.Add(new Vector4(center.x, 0f, center.z, radius));
 
         bool IsBlocked(Vector3 p)
@@ -501,17 +516,17 @@ namespace Travee.TicTacToe.World
             return false;
         }
 
-        /// <summary>Zona de joc: un cerc în jurul tablei (centrul la 1 m în fața pacientului).</summary>
+        /// <summary>Zona de joc: un cerc in jurul tablei (centrul la 1 m in fata pacientului).</summary>
         static bool InPlayArea(Vector3 p, float radius) =>
             new Vector2(p.x, p.z - 1f).sqrMagnitude < radius * radius;
 
-        /// <summary>Culoarul pe care merge personajul (între locul lui și tablă) și locul pacientului.</summary>
+        /// <summary>Culoarul pe care merge personajul (intre locul lui si tabla) si locul pacientului.</summary>
         static bool InWalkLane(Vector3 p) =>
             (Mathf.Abs(p.x) < 3.4f && p.z > 0.6f && p.z < 2.4f) || new Vector2(p.x, p.z).sqrMagnitude < 0.8f;
 
         /// <summary>
-        /// Munte sau insulă: un mesh neregulat generat din cod. Fețele aflate mai sus de
-        /// <paramref name="topFrom"/> (0–1 din înălțime) primesc a doua culoare (zăpadă, vegetație).
+        /// Munte sau insula: un mesh neregulat generat din cod. Fetele aflate mai sus de
+        /// <paramref name="topFrom"/> (0–1 din inaltime) primesc a doua culoare (zapada, vegetatie).
         /// </summary>
         void Peak(Vector3 position, float height, float radius, Color body, Color top, float topFrom)
         {
@@ -526,7 +541,7 @@ namespace Travee.TicTacToe.World
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
-        /// <summary>Unghi (0° = în față, +Z; crește spre dreapta) și distanță → poziție pe sol.</summary>
+        /// <summary>Unghi (0° = in fata, +Z; creste spre dreapta) si distanta → pozitie pe sol.</summary>
         static Vector3 Polar(float angleDegrees, float distance)
         {
             float a = angleDegrees * Mathf.Deg2Rad;
@@ -534,79 +549,5 @@ namespace Travee.TicTacToe.World
         }
 
         float Range(float min, float max) => Mathf.Lerp(min, max, (float)rng.NextDouble());
-    }
-
-    /// <summary>Pâlpâirea focului: intensitatea luminii variază lin, cu zgomot Perlin.</summary>
-    public sealed class Flicker : MonoBehaviour
-    {
-        Light source;
-        float baseIntensity;
-
-        void Awake()
-        {
-            source = GetComponent<Light>();
-            baseIntensity = source.intensity;
-        }
-
-        void Update()
-        {
-            source.intensity = baseIntensity * Mathf.Lerp(0.75f, 1.15f, Mathf.PerlinNoise(Time.time * 4f, 0.5f));
-        }
-    }
-
-    /// <summary>Flacăra tremură: se lungește/scurtează și se apleacă ușor, cu zgomot Perlin.</summary>
-    public sealed class FlameDance : MonoBehaviour
-    {
-        float seed;
-
-        void Awake() => seed = Random.value * 100f;
-
-        void Update()
-        {
-            float t = Time.time * 5f + seed;
-            transform.localScale = new Vector3(1f, Mathf.Lerp(0.8f, 1.25f, Mathf.PerlinNoise(t, seed)), 1f);
-            transform.localRotation = Quaternion.Euler(
-                (Mathf.PerlinNoise(seed, t) - 0.5f) * 14f, 0f, (Mathf.PerlinNoise(t, t * 0.5f) - 0.5f) * 14f);
-        }
-    }
-
-    /// <summary>Un licurici: plutește încet în jurul locului lui și pâlpâie (îi variem mărimea).</summary>
-    public sealed class Firefly : MonoBehaviour
-    {
-        const float Wander = 1.6f;      // metri: cât se îndepărtează de locul lui
-
-        Vector3 origin;
-        float seed, size;
-
-        void Awake()
-        {
-            origin = transform.localPosition;
-            size = transform.localScale.x;
-            seed = Random.value * 100f;
-        }
-
-        void Update()
-        {
-            float t = Time.time * 0.22f + seed;
-            transform.localPosition = origin + new Vector3(
-                Mathf.PerlinNoise(t, seed) - 0.5f,
-                (Mathf.PerlinNoise(seed, t) - 0.5f) * 0.5f,
-                Mathf.PerlinNoise(t + 50f, seed + 50f) - 0.5f) * Wander;
-            float glow = Mathf.SmoothStep(0.15f, 1f, Mathf.PerlinNoise(t * 4f, seed * 2f));
-            transform.localScale = Vector3.one * (size * glow);
-        }
-    }
-
-    /// <summary>Mareea: marea înaintează și se retrage câțiva zeci de centimetri, într-un ritm lent.</summary>
-    public sealed class Tide : MonoBehaviour
-    {
-        Vector3 start;
-
-        void Awake() => start = transform.localPosition;
-
-        void Update()
-        {
-            transform.localPosition = start + Vector3.back * (0.6f * Mathf.Sin(Time.time * 0.7f));
-        }
     }
 }

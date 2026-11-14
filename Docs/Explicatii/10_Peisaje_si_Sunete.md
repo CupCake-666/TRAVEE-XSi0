@@ -1,5 +1,7 @@
 # 10 – Peisaje și sunete: GameAssets, Sky, Environments, Sfx
 
+> **Actualizare:** peisajele pot fi salvate în scenă și aranjate de mână; atunci `Environments.cs` e folosit doar la reconstruire, iar cerul, ceața și sunetul vin din componenta `ThemeSettings`. `Flicker`, `Tide`, `FlameDance` și `Firefly` au acum fișierele lor (un `MonoBehaviour` se salvează în scenă doar dacă fișierul poartă numele clasei). Vezi `Docs/Cum_modific_scena.md`.
+
 Jocul nu se mai întâmplă într-o cameră goală, ci într-un **peisaj** ales din meniu (pădure, munte noaptea,
 plajă), și are **sunete**: ambianță, efecte la fiecare acțiune și pașii personajului.
 

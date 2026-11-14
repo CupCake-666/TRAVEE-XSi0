@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace Travee.TicTacToe.Core.AI
 {
     /// <summary>
-    /// Nivel 4 – Provocare (fair). Joacă perfect și, dintre mutările optime, o alege pe cea care întinde
-    /// cele mai multe capcane. X și 0 e un joc rezolvat (cu joc perfect iese remiză), așa că, pentru ca victoria
-    /// să fie posibilă, AI-ul face rar (maximum o dată pe meci) o greșeală SUBTILĂ: o mutare pierzătoare care
-    /// nu oferă o victorie imediată și pe care pacientul o poate pedepsi doar printr-un răspuns precis.
+    /// Nivel 4 – Provocare (fair). Joaca perfect si, dintre mutarile optime, o alege pe cea care intinde
+    /// cele mai multe capcane. X si 0 e un joc rezolvat (cu joc perfect iese remiza), asa ca, pentru ca victoria
+    /// sa fie posibila, AI-ul face rar (maximum o data pe meci) o greseala SUBTILA: o mutare pierzatoare care
+    /// nu ofera o victorie imediata si pe care pacientul o poate pedepsi doar printr-un raspuns precis.
     /// </summary>
     public sealed class ChallengerAI : IAIStrategy
     {
@@ -23,7 +23,7 @@ namespace Travee.TicTacToe.Core.AI
 
         public DifficultyLevel Level => DifficultyLevel.Level4;
 
-        /// <summary>True dacă AI-ul a făcut deja greșeala subtilă în meciul curent (util pentru log).</summary>
+        /// <summary>True daca AI-ul a facut deja greseala subtila in meciul curent (util pentru log).</summary>
         public bool MistakeMade => mistakeMade;
 
         public void OnNewGame() => mistakeMade = false;
@@ -50,7 +50,7 @@ namespace Travee.TicTacToe.Core.AI
                 }
             }
 
-            // Câștigă cât mai repede dacă poate.
+            // Castiga cat mai repede daca poate.
             if (bestScore > 0)
             {
                 var winning = new List<int>();
@@ -59,7 +59,7 @@ namespace Travee.TicTacToe.Core.AI
                 return AIUtil.Pick(winning, rng);
             }
 
-            // Altfel: dintre mutările cu același rezultat optim, cea cu cele mai multe capcane.
+            // Altfel: dintre mutarile cu acelasi rezultat optim, cea cu cele mai multe capcane.
             int bestSign = Math.Sign(bestScore);
             int bestTraps = -1;
             var chosen = new List<int>();
@@ -86,7 +86,7 @@ namespace Travee.TicTacToe.Core.AI
             int fewestPunishers = int.MaxValue;
             for (int i = 0; i < moves.Count; i++)
             {
-                if (scores[i] >= 0) continue; // doar mutări care pierd cu joc perfect
+                if (scores[i] >= 0) continue; // doar mutari care pierd cu joc perfect
 
                 board.Place(moves[i], aiMark);
                 bool obvious = Search.HasImmediateWin(board, patientMark);

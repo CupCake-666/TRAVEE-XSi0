@@ -7,8 +7,8 @@ using UnityEngine.UI;
 namespace Travee.TicTacToe.UI
 {
     /// <summary>
-    /// Tabla 2D. Este și sursa de input pentru mouse/touch (prin butoanele uGUI).
-    /// În VR se va adăuga o altă implementare de <see cref="ICellInputSource"/> (atingerea cu mâna).
+    /// Tabla 2D. Este si sursa de input pentru mouse/touch (prin butoanele uGUI).
+    /// In VR se va adauga o alta implementare de <see cref="ICellInputSource"/> (atingerea cu mana).
     /// </summary>
     public sealed class BoardView : MonoBehaviour, IBoardView, ICellInputSource
     {

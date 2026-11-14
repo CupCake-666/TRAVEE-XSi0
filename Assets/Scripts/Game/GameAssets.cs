@@ -4,10 +4,10 @@ using UnityEngine;
 namespace Travee.TicTacToe
 {
     /// <summary>
-    /// „Biblioteca” de asset-uri a jocului: modelele 3D ale peisajelor, sunetele și materialele de cer.
-    /// E un ScriptableObject (un fișier .asset cu date, ca un Data Asset din Unreal), completat automat de
-    /// meniul TRAVEE. Codul cere un asset după nume: <c>assets.Model("tree_oak")</c>.
-    /// Fiind referit din scenă, tot ce e în el ajunge sigur și în build.
+    /// „Biblioteca” de asset-uri a jocului: modelele 3D ale peisajelor, sunetele si materialele de cer.
+    /// E un ScriptableObject (un fisier .asset cu date, ca un Data Asset din Unreal), completat automat de
+    /// meniul TRAVEE. Codul cere un asset dupa nume: <c>assets.Model("tree_oak")</c>.
+    /// Fiind referit din scena, tot ce e in el ajunge sigur si in build.
     /// </summary>
     public sealed class GameAssets : ScriptableObject
     {
@@ -36,7 +36,7 @@ namespace Travee.TicTacToe
             return modelsByName.TryGetValue(name, out var found) ? found : null;
         }
 
-        /// <summary>Panorama de cer cu numele dat, sau null (atunci cerul se desenează din cod).</summary>
+        /// <summary>Panorama de cer cu numele dat, sau null (atunci cerul se deseneaza din cod).</summary>
         public Texture2D SkyTexture(string name)
         {
             if (string.IsNullOrEmpty(name)) return null;
