@@ -5,6 +5,43 @@ Explicațiile de cod, linie cu linie, sunt în `Docs/Explicatii/`.
 
 ---
 
+## 26 noiembrie 2026 – mișcarea mâinii personajului
+
+Observație: când personajul apasă o căsuță (mai ales cele de sus, din colț) și când își retrage mâna,
+mișcarea arată nenatural.
+
+**Cum am verificat:** am filmat mișcarea cadru cu cadru, dintr-o cameră laterală (partea mâinii) și din
+ochii pacientului, pentru colțurile de sus (0 și 2), centru (4) și jos (7), cu ambele animații, și am
+măsurat la fiecare cadru: viteza mâinii și a cotului, cât e îndoită încheietura, încotro arată degetele,
+distanța oricărui os al mâinii față de tablă.
+
+**Ce era greșit**
+1. *Rotația mâinii* rămânea cea din animație, care nu știe de tablă: pe drum degetele ajungeau să arate în
+   sus sau înapoi (până la 124° față de direcția tablei), iar căsuța era atinsă cu muchia sau cu dosul mâinii.
+2. *Cotul* nu avea nicio indicație, așa că la întoarcere sărea dintr-o parte în alta (până la ~30 cm într-un
+   singur cadru) și antebrațul ajungea răsucit în spatele șoldului.
+3. *Ultimii centimetri* până la căsuță erau făcuți dintr-o smucitură (corecția fină pornea brusc).
+4. *Eliberarea mâinii* direct de pe căsuță amesteca poza animației de „pune piesa” (în care mâna trece prin
+   tablă) cu ținta IK-ului; la ponderi mici, Unity sărea brusc la altă soluție a brațului.
+5. Drumul mâinii avea un arc spre tablă, care o aducea prea devreme lângă ea.
+
+**Ce s-a schimbat** (`OpponentCharacter.cs`)
+- mâna e rotită ca degetele să arate spre căsuță, treptat pe măsură ce se apropie, cu încheietura îndoită
+  cel mult 50° față de antebraț;
+- cotul are o direcție fixă (în afară, în jos, puțin în spate), din care se păstrează doar partea
+  perpendiculară pe braț, deci nu mai sare;
+- mâna pornește exact de unde e în Idle (lângă șold), cu un arc mic în lateral, nu spre tablă;
+- apăsarea: degetul face ultimii centimetri încet (25 cm/s) și piesa apare abia când a ajuns;
+- întoarcerea: corpul trece întâi în Idle cu degetul încă pe căsuță, apoi mâna e dusă de IK înapoi la șold
+  pe același drum, în cam cât a durat întinderea, și abia acolo IK-ul o predă animației (fără nicio mișcare).
+
+**Rezultat măsurat** (toate cele 8 încercări): cotul nu mai sare (cel mai mare salt între două cadre,
+în afara cadrelor perturbate de capturi, a scăzut de la ~30 cm la sub 4 cm); mâna rămâne la minimum
+1,5 cm de tablă pe toată mișcarea; încheietura îndoită cel mult 37–50°. O mișcare completă durează ~3,8 s
+(față de ~3,7 s).
+
+---
+
 ## 26 noiembrie 2026 – tabla transparentă tot timpul
 
 Cerință: tabla să fie transparentă pe tot parcursul jocului, cum era doar când venea personajul în spatele ei.

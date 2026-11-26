@@ -1,5 +1,7 @@
 # 08 – Personajul AI: OpponentAnimations, OpponentCharacter
 
+> **Actualizare (26 noiembrie):** în `PlacePiece` și `LateUpdate` mâna e acum și rotită (degetele spre căsuță, încheietura îndoită cel mult 50°), cotul primește o indicație de direcție (`SetIKHintPosition`), apăsarea se face încet până la contact (`Pressed`), iar la întoarcere corpul trece în Idle înainte ca mâna să fie dusă de IK înapoi la șold și abia apoi eliberată. Motivele și măsurătorile sunt în `Docs/Jurnal_schimbari.md`.
+
 > **Actualizare:** personajul poate fi un obiect din scenă (`Personaj`), pornit cu `Attach(...)`; constantele `WalkSpeed`, `WaveDuration`, `TargetPreview`, `GazeAngle` au devenit câmpuri în Inspector (`walkSpeed`, `waveDuration`, `targetPreview`, `gazeAngle`), alături de `placement`, `height`, `growToReachBoard` și `reach`. Vezi `Docs/Cum_modific_scena.md`.
 
 Fișierele din `Assets/Scripts/Game/Characters/`. Recitește înainte secțiunea 4.4 din `00_Introducere`

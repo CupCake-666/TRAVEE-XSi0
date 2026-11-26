@@ -34,13 +34,18 @@ namespace Travee.TicTacToe.Characters
         const float BoardClearance = 0.04f;     // metri: cat loc ramane intre fata/burta personajului si tabla
         const float CurledFingers = 0.6f;       // in animatie degetele sunt indoite: mana e mai „scurta” decat in T-pose
         const float TravelMargin = 0.03f;       // metri: rezerva fata de tabla cat timp mana e pe drum
-        const float OpenHand = 1.3f;            // mana cu degetele intinse, plus o rezerva, fata de lungimea masurata
+        const float OpenHand = 1.1f;            // mana cu degetele intinse, plus o mica rezerva, fata de lungimea masurata
+        const float MaxWristBend = 50f;         // grade: cat se poate indoi incheietura fata de antebrat (natural)
+        const float PressSpeed = 0.25f;         // m/s: viteza cu care degetul face ultimii centimetri pana la casuta
+        const float ArcOut = 0.07f;             // metri: cat se arcuieste drumul mainii in lateral, departe de corp
         const float ReachMargin = 0.03f;        // metri: rezerva peste randul de sus cand potrivim inaltimea personajului
         const float StretchTolerance = 0.05f;   // metri: cat poate lipsi pana la randul de sus fara sa ceara ceva pe care sa urce
         const float TouchGap = 0.015f;          // metri: cat de aproape de tabla se opreste degetul
         const float MaxCorrection = 0.20f;      // metri: cat poate fi mutata tinta mainii de corectia fina
         const float StepInterval = 0.45f;       // secunde intre sunetele de pasi
-        const float TouchSettle = 0.22f;        // secunde cu mana tinuta pe casuta inainte si dupa ce apare piesa
+        const float TouchSettle = 0.35f;        // secunde cu mana tinuta pe casuta dupa ce apare piesa (corpul trece in Idle)
+        const float ReleaseTime = 0.25f;        // secunde: IK-ul preda mana animatiei, la final (mana nu se mai misca)
+        const float MaxPress = 0.6f;            // secunde: cat poate dura apasarea (ultimii centimetri) inainte sa apara piesa
 
         // Setarile de mai jos apar in Inspector cand personajul e un obiect din scena („Personaj”).
         [Header("Unde stă și cât de mare e")]
@@ -78,12 +83,14 @@ namespace Travee.TicTacToe.Characters
         float handLength;                       // incheietura → ultima falanga a degetului (in T-pose)
         Vector3 shoulderLocal;                  // pozitia umarului drept fata de picioarele personajului
         Transform fingertip;                    // osul ultimei falange a degetului aratator
+        Transform upperArm, lowerArm;           // umarul si cotul drept (pentru incheietura si pentru cot)
         float minStandDistance;                 // cat de aproape de tabla poate veni umarul fara ca fata sa intre in ea
 
         readonly List<Transform> handBones = new List<Transform>();   // incheietura si toate falangele mainii drepte
 
         // Atingerea casutei (vezi PlacePiece si LateUpdate).
         bool touching;
+        bool leaving;                           // mana se intoarce de la casuta spre corp
         float handReach;                        // 0 = mana langa corp, 1 = mana la casuta
         Vector3 handRest;                       // punctul de langa corp din care porneste si in care revine mana
         Vector3 touchPoint, plannedHandTarget;  // unde se opreste degetul; unde am calculat ca vine incheietura
@@ -212,6 +219,8 @@ namespace Travee.TicTacToe.Characters
             fingertip = Bone(HumanBodyBones.RightIndexDistal) ?? Bone(HumanBodyBones.RightMiddleDistal);
             // Toate oasele mainii drepte: in enum, de la RightThumbProximal la RightLittleDistal sunt la rand.
             handBones.Add(hand);
+            upperArm = upper;
+            lowerArm = lower;
             for (var bone = HumanBodyBones.RightThumbProximal; bone <= HumanBodyBones.RightLittleDistal; bone++)
             {
                 var transformOfBone = Bone(bone);
@@ -335,10 +344,13 @@ namespace Travee.TicTacToe.Characters
             plannedHandTarget = touch + (from - touch).normalized * (handLength * OpenHand);
             boardNormal = -board.transform.up;
             touchPoint = touch + boardNormal * TouchGap;            // osul degetului se opreste la 1,5 cm de tabla
-            // Mana porneste dintr-un punct de langa corp (sub umar, putin in fata) si se intoarce tot acolo.
-            handRest = from + transform.forward * 0.10f - Vector3.up * 0.22f;
+            // Mana porneste exact de unde e acum (in Idle, langa sold) si se intoarce tot acolo: asa preluarea
+            // de catre IK si eliberarea de la final nu mai muta mana deloc.
+            var handNow = Bone(HumanBodyBones.RightHand);
+            handRest = handNow != null ? handNow.position : from - Vector3.up * armLength;
             handCorrection = handFine = Vector3.zero;
             handPushBack = 0f;
+            leaving = false;
             handReach = 0f;
             touching = true;
 
@@ -369,30 +381,51 @@ namespace Travee.TicTacToe.Characters
                 yield return null;
             }
             handReach = 1f;
-            // Cateva cadre cu mana ajunsa, ca sa lucreze corectia fina (LateUpdate): degetul se asaza pe casuta.
-            yield return new WaitForSeconds(TouchSettle);
+            // Apasarea: corectia fina (LateUpdate) duce degetul, incet, ultimii centimetri pana la casuta.
+            // Piesa apare cand degetul a ajuns (sau dupa MaxPress secunde, ca jocul sa nu se blocheze).
+            for (float t = 0; t < MaxPress && !Pressed(); t += Time.deltaTime) yield return null;
             place();                            // piesa apare; tabla stinge singura glow-ul rosu
-            yield return new WaitForSeconds(TouchSettle);
-            float back = Mathf.Max(duration - hit - 2f * TouchSettle, 0.3f);
+
+            // Cat timp degetul mai sta pe casuta (TouchSettle), corpul trece din animatia de „pune piesa” in Idle.
+            // Mana ramane tinuta de IK pe casuta. Abia cand Idle a preluat complet incepe eliberarea mainii:
+            // altfel, in amestecul animatie + IK ar intra si poza animatiei de „pune piesa”, in care mana trece
+            // prin tabla (personajul sta mai aproape decat lungimea bratului).
+            animator.speed = 1f;
+            Play(A.Idle, TouchSettle);
+            yield return new WaitForSeconds(TouchSettle + 0.05f);
+            // 4. Intoarcerea. Corpul e deja in Idle. Mana ramane condusa de IK si e dusa inapoi, pe acelasi drum
+            //    cu arc, pana in punctul de unde a plecat (unde o tine si animatia Idle, langa sold), cu cotul
+            //    tinut jos si in afara. Abia acolo IK-ul isi da drumul (handWeight 1 → 0) – fara nicio miscare,
+            //    pentru ca mana e deja unde ar fi pus-o animatia.
+            //    De ce nu „dam drumul” direct de pe casuta: Unity amesteca poza animatiei cu tinta IK-ului nu
+            //    liniar, iar la ponderi mici bratul sarea brusc si cotul se rasucea. Iar o intoarcere mai rapida
+            //    decat intinderea arata smucit, de aceea durata e cam cea a drumului spre casuta.
+            float back = Mathf.Max(duration - hit - TouchSettle, hit * 0.9f);
+            leaving = true;
             for (float t = 0; t < back; t += Time.deltaTime)
             {
                 handReach = Mathf.SmoothStep(1f, 0f, t / back);
                 yield return null;
             }
             handReach = 0f;
-
-            // 4. Abia dupa ce animatia s-a terminat si personajul revine la Idle (bratul jos) eliberam mana.
-            animator.speed = 1f;
-            Play(A.Idle);
-            float release = Fade + 0.15f;
-            for (float t = 0; t < release; t += Time.deltaTime)
+            for (float t = 0; t < ReleaseTime; t += Time.deltaTime)
             {
-                handWeight = Mathf.SmoothStep(1f, 0f, t / release);
+                handWeight = Mathf.SmoothStep(1f, 0f, t / ReleaseTime);
                 yield return null;
             }
             touching = false;
+            leaving = false;
             handWeight = 0f;
             // Intoarcerea la loc o face rutina urmatoare (randul pacientului sau finalul meciului).
+        }
+
+        /// <summary>A ajuns degetul la casuta? (cel mai apropiat os al mainii e la limita, cu 3 mm toleranta)</summary>
+        bool Pressed()
+        {
+            float nearest = float.MaxValue;
+            foreach (var bone in handBones)
+                nearest = Mathf.Min(nearest, Vector3.Dot(bone.position - touchPoint, boardNormal));
+            return nearest < 0.003f;
         }
 
         /// <summary>
@@ -584,6 +617,7 @@ namespace Travee.TicTacToe.Characters
             animator.speed = 1f;
             handWeight = 0f;
             touching = false;
+            leaving = false;
             Sfx.StopLong();                     // aplauzele se opresc cand personajul trece la altceva
             board.SetAITarget(-1);              // daca a fost intrerupt inainte sa puna piesa
             if (next != null) routine = StartCoroutine(next);
@@ -614,10 +648,28 @@ namespace Travee.TicTacToe.Characters
         {
             if (!touching) return;
 
+            // 0. Orientarea mainii. IK-ul duce incheietura unde trebuie, dar rotatia mainii ramane cea din
+            //    animatie, care nu stie de tabla: degetele ajungeau sa arate in sus sau in lateral si mana atingea
+            //    casuta cu dosul sau cu muchia. Aici rotim mana ca degetele sa arate spre casuta, treptat pe masura
+            //    ce se apropie (handReach), dar fara sa indoim incheietura mai mult de MaxWristBend fata de antebrat.
+            float aim = handWeight * Mathf.SmoothStep(0f, 1f, handReach);
+            var hand = handBones.Count > 0 ? handBones[0] : null;
+            if (aim > 0.001f && hand != null && fingertip != null && lowerArm != null)
+            {
+                var fingers = (fingertip.position - hand.position).normalized;      // unde arata degetele acum
+                var forearm = (hand.position - lowerArm.position).normalized;
+                var wanted = (touchPoint - hand.position).normalized;              // spre casuta
+                wanted = Vector3.RotateTowards(forearm, wanted, MaxWristBend * Mathf.Deg2Rad, 0f);
+                var turn = Quaternion.FromToRotation(fingers, wanted);
+                hand.rotation = Quaternion.Slerp(Quaternion.identity, turn, aim) * hand.rotation;
+            }
+
             // 1. Niciun os al mainii nu are voie mai aproape de tabla decat TouchGap (pe drum: plus o rezerva).
             //    „nearest” = distanta celui mai apropiat os fata de limita permisa; negativ = a depasit-o.
             bool arrived = handReach >= 0.999f;
-            float clearance = arrived ? 0f : TravelMargin;
+            // Rezerva de pe drum se aplica doar la dus: la intors, mana pleaca de la 1,5 cm de tabla si n-are de
+            // ce sa fie impinsa brusc inapoi cu inca 3 cm.
+            float clearance = arrived || leaving ? 0f : TravelMargin;
             float nearest = float.MaxValue;
             foreach (var bone in handBones)
                 nearest = Mathf.Min(nearest, Vector3.Dot(bone.position - touchPoint, boardNormal) - clearance);
@@ -632,7 +684,8 @@ namespace Travee.TicTacToe.Characters
                 handPushBack = Mathf.Max(0f, handPushBack - Mathf.Min(nearest * 0.5f, 0.3f * Time.deltaTime));
             }
 
-            // 2. Cu mana ajunsa la casuta, aducem varful aratatorului pe punctul de atingere.
+            // 2. Cu mana ajunsa la casuta, aducem varful aratatorului pe punctul de atingere – incet (PressSpeed),
+            //    ca o apasare, nu dintr-o smucitura.
             if (fingertip != null && arrived)
             {
                 var error = touchPoint - fingertip.position;
@@ -640,8 +693,9 @@ namespace Travee.TicTacToe.Characters
                 // Inaintam spre tabla doar daca niciun alt deget nu e deja la limita; altfel corectam doar
                 // lateral si pe inaltime.
                 if ((handPushBack > 0f || nearest < 0.002f) && towardBoard < 0f) error -= boardNormal * towardBoard;
-                // O fractiune din eroare pe cadru, independenta de numarul de cadre pe secunda.
-                handFine = Vector3.ClampMagnitude(handFine + error * (1f - Mathf.Exp(-22f * Time.deltaTime)), MaxCorrection);
+                var step = error * (1f - Mathf.Exp(-12f * Time.deltaTime));
+                step = Vector3.ClampMagnitude(step, PressSpeed * Time.deltaTime);
+                handFine = Vector3.ClampMagnitude(handFine + step, MaxCorrection);
             }
             handCorrection = handFine + boardNormal * handPushBack;
         }
@@ -652,7 +706,35 @@ namespace Travee.TicTacToe.Characters
             // Doar capul si ochii (corp 0): rotirea trunchiului peste animatie producea pozitii ciudate.
             animator.SetLookAtWeight(lookWeight, 0f, 0.7f, 1f, 0.6f);
             animator.SetLookAtPosition(lookTarget);
-            if (touching) handTarget = Vector3.Lerp(handRest, plannedHandTarget + handCorrection, handReach);
+            if (touching)
+            {
+                // Drumul mainii: de langa sold pana la casuta, cu un mic arc in lateral, departe de corp (o linie
+                // dreapta trecea foarte aproape de burta si arata mecanic). Arcul nu e spre tabla: acolo mana ar
+                // ajunge prea devreme langa ea.
+                handTarget = Vector3.Lerp(handRest, plannedHandTarget + handCorrection, handReach)
+                             + transform.right * (ArcOut * Mathf.Sin(handReach * Mathf.PI));
+
+                // Cotul: fara indicatie, IK-ul il pune unde il lasa animatia, iar acolo cotul sarea brusc dintr-o
+                // parte in alta (mai ales la intoarcere). Ii dam o directie fixa, ca la un brat real: in afara
+                // (spre dreapta personajului), in jos si putin in spate. Din directia asta pastram doar partea
+                // perpendiculara pe linia umar → mana: cand bratul atarna in jos, „in jos” ar fi chiar de-a lungul
+                // bratului, iar o indicatie de-a lungul bratului e nedefinita si face cotul sa sara.
+                if (upperArm != null)
+                {
+                    var middle = (upperArm.position + handTarget) * 0.5f;
+                    var axis = (handTarget - upperArm.position).normalized;
+                    var bend = transform.right * 0.7f - Vector3.up * 0.6f - transform.forward * 0.25f;
+                    bend = Vector3.ProjectOnPlane(bend, axis);
+                    if (bend.sqrMagnitude < 1e-4f) bend = transform.right;
+                    var elbow = middle + bend.normalized * (armLength * 0.6f);
+                    animator.SetIKHintPositionWeight(AvatarIKHint.RightElbow, handWeight);
+                    animator.SetIKHintPosition(AvatarIKHint.RightElbow, elbow);
+                }
+            }
+            else
+            {
+                animator.SetIKHintPositionWeight(AvatarIKHint.RightElbow, 0f);
+            }
             animator.SetIKPositionWeight(AvatarIKGoal.RightHand, handWeight);
             animator.SetIKPosition(AvatarIKGoal.RightHand, handTarget);
         }
