@@ -19,14 +19,14 @@ namespace Travee.TicTacToe.World
     /// <summary>
     /// Tabla 3D care pluteste in fata pacientului. Este si sursa de input pentru mouse: o raza din camera
     /// prin cursor (raycast) gaseste casuta. In VR, aceleasi collidere vor fi atinse de mana.
-    /// Cand personajul vine in spatele ei, tabla devine semi-transparenta (<see cref="SetSeeThrough"/>).
+    /// Tabla e semi-transparenta tot timpul (implicit) sau doar cand personajul vine in spatele ei
+    /// (<see cref="SetSeeThrough"/>); se alege din Inspector, pe obiectul „Tabla”.
     /// </summary>
     public sealed class Board3DView : MonoBehaviour, IBoardView, ICellInputSource
     {
         const float BoardSize = 0.48f;    // metri
         const float Gap = 0.012f;
         const float TileHeight = 0.012f;
-        const float SeeThroughAlpha = 0.3f;
         const float FadeSpeed = 3f;       // cat de repede se schimba transparenta (alpha pe secunda)
         const float PlateHeight = 0.02f;  // grosimea placii de sub casute
         const float TargetPulse = 6f;     // viteza pulsatiei casutei alese de AI
@@ -46,6 +46,12 @@ namespace Travee.TicTacToe.World
         int hovered = -1;
         int aiTarget = -1;
         float alpha = 1f, targetAlpha = 1f;
+
+        [Header("Transparenta")]
+        [SerializeField, Tooltip("Bifat: tabla e transparentă pe tot parcursul jocului. Debifat: doar cât timp personajul e în spatele ei.")]
+        bool alwaysSeeThrough = true;
+        [SerializeField, Range(0.05f, 1f), Tooltip("Cât de opacă e tabla când e transparentă (1 = deloc transparentă).")]
+        float seeThroughAlpha = 0.3f;
 
         public event Action<int> CellSelected;
 
@@ -83,6 +89,10 @@ namespace Travee.TicTacToe.World
         {
             cam = camera;
             Build(seeThroughTemplate);
+
+            // Daca e transparenta tot timpul, pornim direct asa (fara trecerea treptata de la opac).
+            alpha = targetAlpha = alwaysSeeThrough ? seeThroughAlpha : 1f;
+            ApplyAlpha();
         }
 
         /// <summary>
@@ -93,9 +103,10 @@ namespace Travee.TicTacToe.World
         {
             if (Application.isPlaying) return;
             Gizmos.matrix = transform.localToWorldMatrix;       // desenam in coordonatele tablei
-            Gizmos.color = BaseColor;
+            float a = alwaysSeeThrough ? seeThroughAlpha : 1f;   // la fel de transparenta ca in joc
+            Gizmos.color = new Color(BaseColor.r, BaseColor.g, BaseColor.b, a);
             Gizmos.DrawCube(new Vector3(0f, PlateHeight / 2f, 0f), new Vector3(BoardSize, PlateHeight, BoardSize));
-            Gizmos.color = TileColor;
+            Gizmos.color = new Color(TileColor.r, TileColor.g, TileColor.b, a);
             float cell = (BoardSize - Gap * 4f) / Board.Size;
             for (int i = 0; i < Board.CellCount; i++)
             {
@@ -112,8 +123,9 @@ namespace Travee.TicTacToe.World
             // Placa (render queue 3000) se deseneaza inaintea casutelor (3001), ca sa nu le acopere cand e transparenta.
             var baseMaterial = BoardMaterial(template, BaseColor, 3000);
             tileMaterial = BoardMaterial(template, TileColor, 3001);
-            hoverMaterial = BoardMaterial(template, HoverColor, 3001);
-            winMaterial = BoardMaterial(template, Theme.CellWin, 3001);
+            // Casuta de sub cursor si linia castigatoare raman opace: pe o tabla transparenta trebuie sa se vada clar.
+            hoverMaterial = BoardMaterial(template, HoverColor, 3001, fades: false);
+            winMaterial = BoardMaterial(template, Theme.CellWin, 3001, fades: false);
             // Casuta AI-ului nu urmeaza transparenta tablei: culoarea si alpha ei pulseaza separat (UpdateTarget).
             targetMaterial = BoardMaterial(template, TargetColor, 3001, fades: false);
 
@@ -149,7 +161,8 @@ namespace Travee.TicTacToe.World
         }
 
         /// <summary>Tabla devine semi-transparenta (true) sau revine opaca (false), treptat.</summary>
-        public void SetSeeThrough(bool seeThrough) => targetAlpha = seeThrough ? SeeThroughAlpha : 1f;
+        public void SetSeeThrough(bool seeThrough) =>
+            targetAlpha = seeThrough || alwaysSeeThrough ? seeThroughAlpha : 1f;   // transparenta tot timpul: ramane asa
 
         /// <summary>
         /// Marcheaza casuta pe care urmeaza sa o aleaga AI-ul cu un glow rosu care pulseaza
@@ -180,6 +193,12 @@ namespace Travee.TicTacToe.World
         {
             if (Mathf.Approximately(alpha, targetAlpha)) return;
             alpha = Mathf.MoveTowards(alpha, targetAlpha, FadeSpeed * Time.deltaTime);
+            ApplyAlpha();
+        }
+
+        /// <summary>Pune transparenta curenta pe toate materialele tablei care o urmeaza.</summary>
+        void ApplyAlpha()
+        {
             foreach (var material in fadeMaterials)
             {
                 var c = material.color;

@@ -5,6 +5,24 @@ Explicațiile de cod, linie cu linie, sunt în `Docs/Explicatii/`.
 
 ---
 
+## 26 noiembrie 2026 – tabla transparentă tot timpul
+
+Cerință: tabla să fie transparentă pe tot parcursul jocului, cum era doar când venea personajul în spatele ei.
+
+- `Board3DView` are două câmpuri noi în Inspector (pe obiectul `Tabla`): **Always See Through** (bifat
+  implicit) și **See Through Alpha** (0,3 implicit, valoarea de dinainte). Debifat, comportamentul e cel vechi.
+- Tabla pornește direct transparentă (fără trecerea treptată de la opac), iar cererile personajului de a o
+  face opacă la plecare sunt ignorate cât timp opțiunea e bifată.
+- **Căsuța de sub cursor și linia câștigătoare au rămas opace**: pe o tablă transparentă, galbenul și verdele
+  la 30% abia s-ar fi văzut. Piesele X și 0 erau deja opace.
+- În editor, conturul tablei (gizmo) e desenat la fel de transparent ca în joc.
+
+**Verificare (în Unity):** un meci întreg jucat automat, cu transparența citită la fiecare cadru: 0,3 de la
+meniu până la ecranul de rezultat, inclusiv cât timp personajul vine și pleacă; capturi în timpul meciului și
+la rezultat.
+
+---
+
 ## 13 noiembrie 2026 (a noua rundă) – fereastra Scene în 3D, interfața în scenă
 
 **Fereastra Scene tot în 2D.** Runda trecută o trecusem pe 3D dintr-o comandă rulată fără interfața

@@ -72,6 +72,13 @@ Poziția = centrul tablei. Rotația `X = -90` înseamnă „vertical, cu fața s
 culcată); schimbă **Y** ca s-o întorci stânga-dreapta și **X** ca s-o înclini. **Scale** îi dă mărimea
 (1,3 = 62 cm latura). Personajul își calculează singur unde să stea ca s-o atingă.
 
+Transparența se reglează pe același obiect, în componenta **Board 3D View**:
+- **Always See Through** (bifat implicit) – tabla e transparentă pe tot parcursul jocului; debifat, devine
+  transparentă doar cât timp personajul e în spatele ei, ca înainte;
+- **See Through Alpha** – cât de opacă e când e transparentă (0,3 implicit; 1 = deloc transparentă).
+
+Piesele X și 0, căsuța de sub cursor și linia câștigătoare rămân opace, ca să se vadă clar.
+
 ### Personajul
 - **Animator**: selectează `Personaj` și deschide **Window → Animation → Animator**. Vezi stările (Idle,
   Walk, Wave, Think, PlaceA…), poți schimba clipul fiecăreia (câmpul **Motion**) sau viteza lui. Numele
