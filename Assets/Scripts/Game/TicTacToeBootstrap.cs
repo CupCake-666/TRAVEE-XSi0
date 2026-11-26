@@ -46,6 +46,11 @@ namespace Travee.TicTacToe
             "se potrivește după lungimea brațului pacientului (orientativ 0,5–0,65).")]
         float boardDistance = Room3D.DefaultBoardDistance;
 
+        [Header("Fereastra")]
+        [SerializeField, Tooltip("Bifat: aplicația pornește mereu pe tot ecranul, la rezoluția monitorului. " +
+            "Debifat: Unity folosește dimensiunea ferestrei de la ultima rulare (salvată pe calculator).")]
+        bool startFullScreen = true;
+
         [Header("Sunet")]
         [SerializeField, Range(0f, 1f), Tooltip("Volumul efectelor (click, piese, pași, rezultat).")]
         float effectsVolume = 0.8f;
@@ -71,6 +76,13 @@ namespace Travee.TicTacToe
         void Awake()
         {
             bool is3D = viewMode == ViewMode.ThreeD;
+
+            // Unity tine minte pe calculator (in registry) dimensiunea ferestrei de la ultima rulare si o
+            // foloseste la urmatoarea, chiar daca in Player Settings e ales „Fullscreen”. O singura rulare in
+            // fereastra ajunge ca toate urmatoarele sa porneasca la fel. De aceea cerem explicit tot ecranul,
+            // la rezolutia monitorului. (In editor nu are efect: acolo jocul ruleaza in fereastra Game.)
+            if (startFullScreen && !Application.isEditor)
+                Screen.SetResolution(Display.main.systemWidth, Display.main.systemHeight, FullScreenMode.FullScreenWindow);
 
             EnsureEventSystem();
             if (assets != null) Sfx.Create(transform, assets, effectsVolume, ambientVolume);

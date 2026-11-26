@@ -5,6 +5,22 @@ Explicațiile de cod, linie cu linie, sunt în `Docs/Explicatii/`.
 
 ---
 
+## 26 noiembrie 2026 – build-ul pornea în fereastră mică
+
+**Cauza:** Unity ține minte pe calculator (în registry, la `HKCU\Software\DefaultCompany\X&0 TRAVEE`)
+dimensiunea și modul ferestrei de la ultima rulare și le folosește la următoarea, peste setarea din Player
+Settings (care era corectă: Fullscreen Window, 1920 × 1080). La o verificare automată din 13 noiembrie am
+pornit un build de probă în fereastră de 960 × 540; de atunci, orice build al jocului pe acest calculator
+pornea la fel. Pe alt calculator (laptopul) problema nu apare.
+
+**Corectura:** câmp nou pe obiectul `XSi0`, **Start Full Screen** (bifat implicit): la pornire jocul cere
+explicit tot ecranul, la rezoluția monitorului (`Screen.SetResolution(..., FullScreenMode.FullScreenWindow)`).
+În editor nu are efect. **Alt + Enter** comută în continuare între ecran complet și fereastră.
+
+**Verificare:** compilează. Nu am pornit build-ul (ar fi ocupat tot ecranul); de verificat la următorul build.
+
+---
+
 ## 26 noiembrie 2026 – mișcarea mâinii personajului
 
 Observație: când personajul apasă o căsuță (mai ales cele de sus, din colț) și când își retrage mâna,
